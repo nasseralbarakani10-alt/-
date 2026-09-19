@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Tailoring Shears / Scissors Icon for Trend Tailoring -->
+    <!-- Left Blade and Handle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M37.5,65 C33.36,65 30,68.36 30,72.5 C30,76.64 33.36,80 37.5,80 C41.64,80 45,76.64 45,72.5 C45,70.5 44.2,68.7 42.9,67.4 L52,56 L47,52 L39,63.1 C38.5,65 38,65 37.5,65 Z M37.5,77 C35.01,77 33,74.99 33,72.5 C33,70.01 35.01,68 37.5,68 C39.99,68 42,70.01 42,72.5 C42,74.99 39.99,77 37.5,77 Z" />
+    <!-- Right Blade and Handle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M70.5,65 C70,65 69.5,65 69,63.1 L61,52 L56,56 L65.1,67.4 C63.8,68.7 63,70.5 63,72.5 C63,76.64 66.36,80 70.5,80 C74.64,80 78,76.64 78,72.5 C78,68.36 74.64,65 70.5,65 Z M70.5,77 C68.01,77 66,74.99 66,72.5 C66,70.01 68.01,68 70.5,68 C72.99,68 75,70.01 75,72.5 C75,74.99 72.99,77 70.5,77 Z" />
+    <!-- Upper Blades crossed -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M49,50 L42,32 C41.5,30.5 42.5,29 44,29 L46.5,29 C47.5,29 48.3,29.6 48.7,30.5 L54,44 L59.3,30.5 C59.7,29.6 60.5,29 61.5,29 L64,29 C65.5,29 66.5,30.5 66,32 L59,50 L54,54 Z" />
+    <!-- Central Pivot Pin (Golden Accent) -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M54,49 A4,4 0 1 0 54,57 A4,4 0 1 0 54,49" />
+</vector>

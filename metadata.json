@@ -1,0 +1,6 @@
+{
+  "name": "متابعة العمل",
+  "description": "تطبيق متابعة العمل لمحلات ترند للخياطة الرجالية",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
