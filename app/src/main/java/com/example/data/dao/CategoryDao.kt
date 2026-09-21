@@ -26,6 +26,9 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE id = :id")
     fun getById(id: Long): Flow<Category?>
 
+    @Query("UPDATE categories SET usageCount = usageCount + 1 WHERE id = :id")
+    suspend fun incrementUsageCount(id: Long)
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(category: Category): Long
 

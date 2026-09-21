@@ -25,17 +25,17 @@ import com.example.ui.theme.BluePrimary
 fun appTextFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
     focusedTextColor = Color.Black,
     unfocusedTextColor = Color.Black,
-    focusedLabelColor = Color(0xFF1565C0),
-    unfocusedLabelColor = Color(0xFF616161),
-    cursorColor = Color(0xFF1565C0),
-    focusedBorderColor = Color(0xFF1565C0),
-    unfocusedBorderColor = Color(0xFF9E9E9E),
-    focusedPlaceholderColor = Color(0xFF757575),
-    unfocusedPlaceholderColor = Color(0xFF757575),
-    focusedLeadingIconColor = Color(0xFF1565C0),
-    unfocusedLeadingIconColor = Color(0xFF616161),
-    focusedTrailingIconColor = Color(0xFF1565C0),
-    unfocusedTrailingIconColor = Color(0xFF616161),
+    focusedLabelColor = Color(0xFF0288D1),
+    unfocusedLabelColor = Color(0xFF000000),
+    cursorColor = Color(0xFF0288D1),
+    focusedBorderColor = Color(0xFF29B6F6),
+    unfocusedBorderColor = Color(0xFF90A4AE),
+    focusedPlaceholderColor = Color(0xFF546E7A),
+    unfocusedPlaceholderColor = Color(0xFF546E7A),
+    focusedLeadingIconColor = Color(0xFF0288D1),
+    unfocusedLeadingIconColor = Color(0xFF000000),
+    focusedTrailingIconColor = Color(0xFF0288D1),
+    unfocusedTrailingIconColor = Color(0xFF000000),
     errorTextColor = Color.Black,
     errorBorderColor = Color(0xFFD32F2F),
     errorLabelColor = Color(0xFFD32F2F),
@@ -44,7 +44,7 @@ fun appTextFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
 
 /**
  * Reusable high-contrast AppTextField for standard forms, dialogs, and screens.
- * Ensures consistent font sizes (>= 16sp for input, >= 14sp for labels) and avoids label/placeholder overlap.
+ * Ensures consistent font sizes (14sp for input, 13.5sp for labels) and avoids label/placeholder overlap.
  */
 @Composable
 fun AppTextField(
@@ -71,8 +71,9 @@ fun AppTextField(
             Text(
                 text = cleanLabel,
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
             )
         },
@@ -81,17 +82,17 @@ fun AppTextField(
                 Text(
                     text = placeholder,
                     style = TextStyle(
-                        fontSize = 15.sp,
-                        color = Color(0xFF757575),
-                        fontWeight = FontWeight.Normal
+                        fontSize = 13.5.sp,
+                        color = Color(0xFF546E7A),
+                        fontWeight = FontWeight.SemiBold
                     )
                 )
             }
         } else null,
         textStyle = TextStyle(
-            fontSize = 16.sp,
+            fontSize = 14.sp,
             color = Color.Black,
-            fontWeight = FontWeight.Normal
+            fontWeight = FontWeight.SemiBold
         ),
         colors = appTextFieldColors(),
         modifier = modifier.fillMaxWidth(),

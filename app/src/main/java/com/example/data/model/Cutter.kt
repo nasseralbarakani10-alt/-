@@ -10,5 +10,6 @@ data class Cutter(
     val name: String,
     val phoneNumber: String = "",
     val isActive: Boolean = true,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val usageCount: Int = 0
 )

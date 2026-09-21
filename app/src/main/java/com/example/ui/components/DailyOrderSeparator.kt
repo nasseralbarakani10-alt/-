@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,10 +37,9 @@ fun DailyOrderSeparator(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
             .testTag("daily_separator_${dayName}_$fullDate"),
-        shape = RoundedCornerShape(10.dp),
-        shadowElevation = 3.dp,
+        shape = RectangleShape,
+        shadowElevation = 1.dp,
         color = Color.Transparent
     ) {
         Column(
@@ -49,81 +48,83 @@ fun DailyOrderSeparator(
                 .background(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
-                            Color(0xFF0D47A1), // Rich dark blue
-                            Color(0xFF1976D2), // Medium blue
-                            Color(0xFF0D47A1)
+                            Color(0xFF0288D1), // Deep sky-blue
+                            Color(0xFF29B6F6), // Light cyan-blue (sky-blue)
+                            Color(0xFF0288D1)
                         )
                     )
                 )
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .padding(horizontal = 10.dp, vertical = 3.dp)
         ) {
-            // Header: Title
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Description,
-                    contentDescription = null,
-                    tint = Color(0xFFFFD54F), // Amber/gold accent
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "كشف متابعة العمل لمحلات ترند للخياطة الرجالية",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Sub-row: Day name & Full Date & Day orders count
+            // Line 1: App title & Day orders count badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
                     Icon(
-                        imageVector = Icons.Default.CalendarToday,
+                        imageVector = Icons.Default.Description,
                         contentDescription = null,
-                        tint = Color(0xFFE3F2FD),
-                        modifier = Modifier.size(16.dp)
+                        tint = Color(0xFF000000),
+                        modifier = Modifier.size(13.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "اليوم: $dayName",
-                        color = Color(0xFFFFE082),
+                        text = "كشف متابعة العمل لمحلات ترند للخياطة الرجالية",
+                        color = Color(0xFF000000),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = "  |  ",
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = fullDate,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 14.sp
+                        fontSize = 11.5.sp,
+                        maxLines = 1
                     )
                 }
-
                 Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color.White.copy(alpha = 0.2f)
+                    shape = RoundedCornerShape(3.dp),
+                    color = Color.White
                 ) {
                     Text(
                         text = "$orderCount عملية",
-                        color = Color.White,
+                        color = Color(0xFF000000),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
                     )
                 }
+            }
+
+            // Line 2: Day name & Full Date
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarToday,
+                    contentDescription = null,
+                    tint = Color(0xFF000000),
+                    modifier = Modifier.size(11.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "اليوم: $dayName",
+                    color = Color(0xFF000000),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp
+                )
+                Text(
+                    text = "  |  ",
+                    color = Color(0xFF000000),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp
+                )
+                Text(
+                    text = fullDate,
+                    color = Color(0xFF000000),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp
+                )
             }
         }
     }

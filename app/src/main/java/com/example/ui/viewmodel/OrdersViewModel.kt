@@ -146,7 +146,17 @@ class OrdersViewModel(
                 createdAt = now,
                 updatedAt = now
             )
-            repository.insertOrder(order)
+            val newOrderId = repository.insertOrder(order)
+            if (newOrderId > 0) {
+                // Increment usageCount for the selected category, cutter, and tailor
+                repository.incrementCategoryUsageCount(categoryId)
+                if (cutterId != null) {
+                    repository.incrementCutterUsageCount(cutterId)
+                }
+                if (tailorId != null) {
+                    repository.incrementTailorUsageCount(tailorId)
+                }
+            }
         }
     }
 
@@ -163,6 +173,46 @@ class OrdersViewModel(
             )
             if (result.isFailure) {
                 val msg = result.exceptionOrNull()?.message ?: "ليس لديك صلاحية لتعديل هذا الطلب"
+                _errorMessage.value = msg
+                onError(msg)
+            }
+        }
+    }
+
+    fun toggleButtonIroning(order: Order, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            val updated = order.copy(
+                buttonIroning = !order.buttonIroning,
+                updatedAt = System.currentTimeMillis()
+            )
+            val result = repository.updateOrderWithPermission(
+                order = updated,
+                currentUser = sessionManager.currentUser.value,
+                currentPermissions = sessionManager.currentPermissions.value
+            )
+            if (result.isFailure) {
+                val msg = result.exceptionOrNull()?.message ?: "ليس لديك صلاحية لتعديل هذا الطلب"
+                _errorMessage.value = msg
+                onError(msg)
+            }
+        }
+    }
+
+    fun setOrderReady(order: Order, ready: Boolean, onSuccess: () -> Unit = {}, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            val updated = order.copy(
+                ready = ready,
+                updatedAt = System.currentTimeMillis()
+            )
+            val result = repository.updateOrderWithPermission(
+                order = updated,
+                currentUser = sessionManager.currentUser.value,
+                currentPermissions = sessionManager.currentPermissions.value
+            )
+            if (result.isSuccess) {
+                onSuccess()
+            } else {
+                val msg = result.exceptionOrNull()?.message ?: "ليس لديك صلاحية لتغيير حالة الجاهزية"
                 _errorMessage.value = msg
                 onError(msg)
             }

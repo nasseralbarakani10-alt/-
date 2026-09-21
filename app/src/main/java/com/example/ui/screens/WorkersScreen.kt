@@ -99,7 +99,7 @@ fun WorkersScreen(
             WorkerReportScreen(
                 title = "تقارير القصاصين",
                 workerLabel = "القصاص",
-                workers = cutters.map { WorkerOption(it.id, it.name, it.isActive) },
+                workers = cutters.map { WorkerOption(it.id, it.name, it.isActive, it.phoneNumber) },
                 isCutter = true,
                 ordersViewModel = ordersViewModel,
                 categoriesViewModel = categoriesViewModel,
@@ -116,7 +116,7 @@ fun WorkersScreen(
             WorkerReportScreen(
                 title = "تقارير الخياطين",
                 workerLabel = "الخياط",
-                workers = tailors.map { WorkerOption(it.id, it.name, it.isActive) },
+                workers = tailors.map { WorkerOption(it.id, it.name, it.isActive, it.phoneNumber) },
                 isCutter = false,
                 ordersViewModel = ordersViewModel,
                 categoriesViewModel = categoriesViewModel,
@@ -160,7 +160,7 @@ fun WorkersScreen(
             // App Bar Header
             Surface(
                 color = BluePrimary,
-                shadowElevation = 4.dp,
+                shadowElevation = 3.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -171,7 +171,7 @@ fun WorkersScreen(
                 ) {
                     Text(
                         text = "بيانات القصاصين والخياطين",
-                        color = Color.White,
+                        color = Color(0xFF000000),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
@@ -185,7 +185,7 @@ fun WorkersScreen(
             TabRow(
                 selectedTabIndex = selectedTabIndex,
                 containerColor = Color.White,
-                contentColor = BluePrimary,
+                contentColor = Color(0xFF000000),
                 indicator = { tabPositions ->
                     TabRowDefaults.SecondaryIndicator(
                         Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
@@ -206,12 +206,14 @@ fun WorkersScreen(
                             Icon(
                                 imageVector = Icons.Default.ContentCut,
                                 contentDescription = null,
+                                tint = Color(0xFF000000),
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = "القصاصين (${cutters.size})",
-                                fontSize = 15.sp,
-                                fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Medium
+                                fontSize = 14.sp,
+                                color = Color(0xFF000000),
+                                fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.SemiBold
                             )
                         }
                     },
@@ -228,12 +230,14 @@ fun WorkersScreen(
                             Icon(
                                 imageVector = Icons.Default.Engineering,
                                 contentDescription = null,
+                                tint = Color(0xFF000000),
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = "الخياطين (${tailors.size})",
-                                fontSize = 15.sp,
-                                fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Medium
+                                fontSize = 14.sp,
+                                color = Color(0xFF000000),
+                                fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.SemiBold
                             )
                         }
                     },
@@ -260,7 +264,7 @@ fun WorkersScreen(
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
                         ),
-                        color = Color(0xFF1E293B)
+                        color = Color(0xFF000000)
                     )
 
                     Row(
@@ -279,13 +283,13 @@ fun WorkersScreen(
                                     Icon(
                                         imageVector = Icons.Default.Assessment,
                                         contentDescription = null,
-                                        tint = BluePrimary,
+                                        tint = Color(0xFF000000),
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = if (selectedTabIndex == 0) "التقرير المالي" else "التقرير المالي",
-                                        color = BluePrimary,
+                                        color = Color(0xFF000000),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 13.sp
                                     )
@@ -748,17 +752,17 @@ private fun WorkerCard(
                     Icon(
                         imageVector = Icons.Default.Phone,
                         contentDescription = null,
-                        tint = Color(0xFF1565C0),
+                        tint = Color(0xFF0288D1),
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (phoneNumber.isNotBlank()) phoneNumber else "بدون رقم هاتف",
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold
                         ),
-                        color = Color(0xFF212121)
+                        color = Color(0xFF000000)
                     )
                 }
             }
@@ -777,9 +781,9 @@ private fun WorkerCard(
                 ) {
                     Text(
                         text = stopLabel,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isStopped) Color(0xFFC62828) else Color(0xFF424242)
+                        color = if (isStopped) Color(0xFFC62828) else Color(0xFF000000)
                     )
                     Checkbox(
                         checked = isStopped,

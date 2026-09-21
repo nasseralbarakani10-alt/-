@@ -148,7 +148,7 @@ fun CustomSearchReportScreen(
                         Box(modifier = Modifier.fillMaxWidth()) {
                             Column {
                                 Text(
-                                    text = "نوع التفصيل (النوع):",
+                                    text = "نوع التفصيل:",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF1E293B),
@@ -168,7 +168,7 @@ fun CustomSearchReportScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = categories.find { it.id == selectedCategoryId }?.name ?: "الكل (جميع الأنواع)",
+                                            text = categories.find { it.id == selectedCategoryId }?.name ?: "الكل (جميع أنواع التفصيل)",
                                             fontSize = 13.sp,
                                             color = Color(0xFF0F172A),
                                             fontWeight = FontWeight.Medium

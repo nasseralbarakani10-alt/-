@@ -23,9 +23,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -37,6 +40,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -56,26 +61,55 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.BluePrimary
 import com.example.ui.viewmodel.AuthViewModel
 import com.example.ui.viewmodel.CategoriesViewModel
+import com.example.ui.viewmodel.DevicesViewModel
+import com.example.ui.viewmodel.MessagingViewModel
+import com.example.ui.viewmodel.SettingsViewModel
+import com.example.ui.viewmodel.UsersViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
     categoriesViewModel: CategoriesViewModel,
     authViewModel: AuthViewModel,
+    usersViewModel: UsersViewModel? = null,
+    devicesViewModel: DevicesViewModel? = null,
+    messagingViewModel: MessagingViewModel? = null,
+    settingsViewModel: SettingsViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
+    val currentPermissions by authViewModel.currentPermissions.collectAsState()
+    val canAccessSettings = currentUser?.isAdmin == true || currentPermissions?.canAccessSettings == true
+    val appSettings by (settingsViewModel?.appSettings ?: remember {
+        kotlinx.coroutines.flow.MutableStateFlow(com.example.data.model.AppSettings())
+    }).collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
+    var showMessagingSettingsScreen by remember { mutableStateOf(false) }
     var showCategoriesManagement by remember { mutableStateOf(false) }
     var showUserManagement by remember { mutableStateOf(false) }
+    var showLinkedDevicesScreen by remember { mutableStateOf(false) }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    if (showUserManagement) {
+    // Navigation sub-screens:
+    if (showMessagingSettingsScreen && canAccessSettings && messagingViewModel != null) {
+        MessagingSettingsScreen(
+            messagingViewModel = messagingViewModel,
+            onBack = { showMessagingSettingsScreen = false },
+            modifier = modifier
+        )
+    } else if (showLinkedDevicesScreen && devicesViewModel != null) {
+        LinkedDevicesScreen(
+            devicesViewModel = devicesViewModel,
+            onBack = { showLinkedDevicesScreen = false },
+            modifier = modifier
+        )
+    } else if (showUserManagement && currentUser?.isAdmin == true && usersViewModel != null) {
         UserManagementScreen(
-            authViewModel = authViewModel,
+            usersViewModel = usersViewModel,
             onBack = { showUserManagement = false },
             modifier = modifier
         )
@@ -98,21 +132,21 @@ fun SettingsScreen(
                 // App Bar Header
                 Surface(
                     color = BluePrimary,
-                    shadowElevation = 4.dp,
+                    shadowElevation = 2.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "الإعدادات",
-                            color = Color.White,
+                            color = Color(0xFF000000),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
+                                fontSize = 17.sp
                             )
                         )
                     }
@@ -122,53 +156,53 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     // Current User Info Card
                     currentUser?.let { user ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(10.dp),
                             colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
                             border = BorderStroke(1.dp, Color(0xFFBBF7D0))
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(14.dp),
+                                    .padding(horizontal = 12.dp, vertical = 7.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Surface(
                                     shape = CircleShape,
                                     color = Color(0xFFDCFCE7),
-                                    modifier = Modifier.size(42.dp)
+                                    modifier = Modifier.size(32.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             imageVector = Icons.Default.Person,
                                             contentDescription = null,
                                             tint = Color(0xFF15803D),
-                                            modifier = Modifier.size(22.dp)
+                                            modifier = Modifier.size(18.dp)
                                         )
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
 
                                 Column {
                                     Text(
                                         text = "المستخدم الحالي: ${user.username}",
                                         style = MaterialTheme.typography.titleSmall.copy(
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp,
+                                            fontSize = 13.5.sp,
                                             color = Color(0xFF14532D)
                                         )
                                     )
                                     Text(
                                         text = if (user.isAdmin) "حساب مدير نظام (كامل الصلاحيات)" else "حساب مستخدم عادي",
                                         style = MaterialTheme.typography.bodySmall.copy(
-                                            fontSize = 12.5.sp,
+                                            fontSize = 12.sp,
                                             color = Color(0xFF166534)
                                         )
                                     )
@@ -201,7 +235,117 @@ fun SettingsScreen(
                         onClick = { showCategoriesManagement = true }
                     )
 
-                    // 3. Change Password
+                    // 2.1 Sort By Frequency Toggle
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                settingsViewModel?.setSortByFrequencyEnabled(!appSettings.sortByFrequencyEnabled)
+                            }
+                            .testTag("sort_by_frequency_setting_card"),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color(0xFFEFF6FF),
+                                    modifier = Modifier.size(34.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Sort,
+                                            contentDescription = null,
+                                            tint = BluePrimary,
+                                            modifier = Modifier.size(19.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(10.dp))
+
+                                Column {
+                                    Text(
+                                        text = "ترتيب العناصر حسب الأكثر اختيارًا",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        ),
+                                        color = Color(0xFF000000)
+                                    )
+                                    Text(
+                                        text = if (appSettings.sortByFrequencyEnabled)
+                                            "مفعل: ترتيب أنواع التفصيل والقصاصين والخياطين حسب الأكثر اختياراً"
+                                        else
+                                            "معطل: الترتيب الافتراضي للعناصر",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (appSettings.sortByFrequencyEnabled) BluePrimary else Color(0xFF64748B)
+                                        ),
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+
+                            Switch(
+                                checked = appSettings.sortByFrequencyEnabled,
+                                onCheckedChange = { isChecked ->
+                                    settingsViewModel?.setSortByFrequencyEnabled(isChecked)
+                                },
+                                modifier = Modifier
+                                    .height(32.dp)
+                                    .testTag("sort_by_frequency_switch"),
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = BluePrimary,
+                                    uncheckedThumbColor = Color.White,
+                                    uncheckedTrackColor = Color(0xFFCBD5E1),
+                                    uncheckedBorderColor = Color(0xFF94A3B8)
+                                )
+                            )
+                        }
+                    }
+
+                    // 3. Messaging Settings (only for users with canAccessSettings)
+                    if (canAccessSettings && messagingViewModel != null) {
+                        SettingsOptionBar(
+                            title = "الرسائل",
+                            subtitle = "إعدادات قوالب الرسائل ونوع الإرسال (SMS، واتساب) والإرسال التلقائي",
+                            icon = Icons.Default.Chat,
+                            iconTint = Color(0xFF2563EB),
+                            iconBg = Color(0xFFEFF6FF),
+                            testTag = "messages_settings_card",
+                            onClick = { showMessagingSettingsScreen = true }
+                        )
+                    }
+
+                    // 4. Linked Devices
+                    if (devicesViewModel != null) {
+                        SettingsOptionBar(
+                            title = "الأجهزة المرتبطة",
+                            subtitle = "عرض وإدارة الأجهزة المتصلة بالنظام وتاريخ المزامنة",
+                            icon = Icons.Default.Devices,
+                            iconTint = Color(0xFF0284C7),
+                            iconBg = Color(0xFFE0F2FE),
+                            testTag = "linked_devices_setting_card",
+                            onClick = { showLinkedDevicesScreen = true }
+                        )
+                    }
+
+                    // 4. Change Password
                     SettingsOptionBar(
                         title = "تغيير كلمة المرور",
                         subtitle = "تغيير كلمة المرور الخاصة بحسابك الحالي",
@@ -226,7 +370,7 @@ fun SettingsScreen(
                     // System Info Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(10.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -234,23 +378,23 @@ fun SettingsScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
+                                .padding(horizontal = 12.dp, vertical = 7.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Surface(
                                     shape = CircleShape,
                                     color = Color(0xFFF1F5F9),
-                                    modifier = Modifier.size(36.dp)
+                                    modifier = Modifier.size(26.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             imageVector = Icons.Default.Info,
                                             contentDescription = null,
                                             tint = Color(0xFF475569),
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size(15.dp)
                                         )
                                     }
                                 }
@@ -258,26 +402,26 @@ fun SettingsScreen(
                                     text = "معلومات التطبيق",
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp
+                                        fontSize = 13.5.sp
                                     ),
                                     color = Color(0xFF1E293B)
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
-                                text = "ترند للخياطة الرجالية - كشف متابعة العمل\nالإصدار 1.0 (قاعدة بيانات محلية غير متصلة بالإنترنت)",
+                                text = "ترند للخياطة الرجالية - كشف متابعة العمل | الإصدار 1.0 (محلي)",
                                 style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 13.5.sp,
+                                    fontSize = 12.sp,
                                     color = Color(0xFF4B5563),
-                                    lineHeight = 20.sp
+                                    lineHeight = 16.sp
                                 )
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
             }
         }
@@ -345,15 +489,15 @@ fun SettingsOptionBar(
             .fillMaxWidth()
             .clickable { onClick() }
             .testTag(testTag),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 12.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -364,36 +508,37 @@ fun SettingsOptionBar(
                 Surface(
                     shape = CircleShape,
                     color = iconBg,
-                    modifier = Modifier.size(46.dp)
+                    modifier = Modifier.size(34.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
                             tint = iconTint,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(19.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
                 Column {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp
+                            fontSize = 14.sp
                         ),
-                        color = Color(0xFF0F172A)
+                        color = Color(0xFF000000)
                     )
-                    Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 13.sp,
-                            color = Color(0xFF64748B)
-                        )
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF475569)
+                        ),
+                        maxLines = 1
                     )
                 }
             }
@@ -401,8 +546,8 @@ fun SettingsOptionBar(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = null,
-                tint = Color(0xFF94A3B8),
-                modifier = Modifier.size(16.dp)
+                tint = Color(0xFF64748B),
+                modifier = Modifier.size(14.dp)
             )
         }
     }

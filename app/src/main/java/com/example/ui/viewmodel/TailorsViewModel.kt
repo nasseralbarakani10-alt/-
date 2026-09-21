@@ -7,6 +7,7 @@ import com.example.data.repository.AppRepository
 import com.example.data.session.SessionManager
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -15,11 +16,35 @@ class TailorsViewModel(
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
-    val allTailors: StateFlow<List<Tailor>> = repository.allTailors
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val allTailors: StateFlow<List<Tailor>> = combine(
+        repository.allTailors,
+        repository.appSettings
+    ) { tailors, settings ->
+        val sortByFrequency = settings?.sortByFrequencyEnabled ?: true
+        if (sortByFrequency) {
+            tailors.sortedWith(
+                compareByDescending<Tailor> { it.usageCount }
+                    .thenBy { it.name }
+            )
+        } else {
+            tailors.sortedBy { it.name }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val activeTailors: StateFlow<List<Tailor>> = repository.activeTailors
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val activeTailors: StateFlow<List<Tailor>> = combine(
+        repository.activeTailors,
+        repository.appSettings
+    ) { tailors, settings ->
+        val sortByFrequency = settings?.sortByFrequencyEnabled ?: true
+        if (sortByFrequency) {
+            tailors.sortedWith(
+                compareByDescending<Tailor> { it.usageCount }
+                    .thenBy { it.name }
+            )
+        } else {
+            tailors.sortedBy { it.name }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun addTailor(name: String, phoneNumber: String = "", onComplete: () -> Unit = {}) {
         viewModelScope.launch {

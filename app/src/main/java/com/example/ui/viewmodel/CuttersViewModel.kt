@@ -7,6 +7,7 @@ import com.example.data.repository.AppRepository
 import com.example.data.session.SessionManager
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -15,11 +16,35 @@ class CuttersViewModel(
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
-    val allCutters: StateFlow<List<Cutter>> = repository.allCutters
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val allCutters: StateFlow<List<Cutter>> = combine(
+        repository.allCutters,
+        repository.appSettings
+    ) { cutters, settings ->
+        val sortByFrequency = settings?.sortByFrequencyEnabled ?: true
+        if (sortByFrequency) {
+            cutters.sortedWith(
+                compareByDescending<Cutter> { it.usageCount }
+                    .thenBy { it.name }
+            )
+        } else {
+            cutters.sortedBy { it.name }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val activeCutters: StateFlow<List<Cutter>> = repository.activeCutters
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val activeCutters: StateFlow<List<Cutter>> = combine(
+        repository.activeCutters,
+        repository.appSettings
+    ) { cutters, settings ->
+        val sortByFrequency = settings?.sortByFrequencyEnabled ?: true
+        if (sortByFrequency) {
+            cutters.sortedWith(
+                compareByDescending<Cutter> { it.usageCount }
+                    .thenBy { it.name }
+            )
+        } else {
+            cutters.sortedBy { it.name }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun addCutter(name: String, phoneNumber: String = "", onComplete: () -> Unit = {}) {
         viewModelScope.launch {

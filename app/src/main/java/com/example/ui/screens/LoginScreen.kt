@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.BlueDark
 import com.example.ui.theme.BluePrimary
 import com.example.ui.viewmodel.AuthState
 import com.example.ui.viewmodel.AuthViewModel
@@ -109,7 +110,7 @@ fun LoginScreen(
                         Icon(
                             imageVector = Icons.Default.ContentCut,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = Color(0xFF000000),
                             modifier = Modifier.size(44.dp)
                         )
                     }
@@ -121,14 +122,15 @@ fun LoginScreen(
                     text = "ترند للخياطة الرجالية",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
+                        color = Color(0xFF000000)
                     )
                 )
 
                 Text(
                     text = "كشف متابعة العمل وإدارة الطلبات",
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        color = Color(0xFF64748B),
+                        color = Color(0xFF000000),
+                        fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
                     ),
                     modifier = Modifier.padding(top = 4.dp)
@@ -155,7 +157,7 @@ fun LoginScreen(
                             text = "تسجيل الدخول",
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1E293B)
+                                color = Color(0xFF000000)
                             )
                         )
 
@@ -168,15 +170,34 @@ fun LoginScreen(
                                 username = it
                                 if (loginState is AuthState.Error) authViewModel.clearLoginState()
                             },
-                            label = { Text("اسم المستخدم") },
-                            placeholder = { Text("أدخل اسم المستخدم") },
+                            label = {
+                                Text(
+                                    "اسم المستخدم",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.5.sp,
+                                    color = Color(0xFF000000)
+                                )
+                            },
+                            placeholder = {
+                                Text(
+                                    "أدخل اسم المستخدم",
+                                    fontSize = 13.5.sp,
+                                    color = Color(0xFF546E7A),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Person,
                                     contentDescription = null,
-                                    tint = BluePrimary
+                                    tint = BlueDark
                                 )
                             },
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontSize = 14.sp,
+                                color = Color(0xFF000000),
+                                fontWeight = FontWeight.SemiBold
+                            ),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Text,
@@ -188,7 +209,9 @@ fun LoginScreen(
                             shape = RoundedCornerShape(10.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = BluePrimary,
-                                unfocusedBorderColor = Color(0xFFCBD5E1)
+                                unfocusedBorderColor = Color(0xFF90A4AE),
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -204,15 +227,34 @@ fun LoginScreen(
                                 password = it
                                 if (loginState is AuthState.Error) authViewModel.clearLoginState()
                             },
-                            label = { Text("كلمة المرور") },
-                            placeholder = { Text("أدخل كلمة المرور") },
+                            label = {
+                                Text(
+                                    "كلمة المرور",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.5.sp,
+                                    color = Color(0xFF000000)
+                                )
+                            },
+                            placeholder = {
+                                Text(
+                                    "أدخل كلمة المرور",
+                                    fontSize = 13.5.sp,
+                                    color = Color(0xFF546E7A),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Lock,
                                     contentDescription = null,
-                                    tint = BluePrimary
+                                    tint = BlueDark
                                 )
                             },
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontSize = 14.sp,
+                                color = Color(0xFF000000),
+                                fontWeight = FontWeight.SemiBold
+                            ),
                             trailingIcon = {
                                 val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                                 val description = if (passwordVisible) "إخفاء كلمة المرور" else "إظهار كلمة المرور"
@@ -220,7 +262,7 @@ fun LoginScreen(
                                     onClick = { passwordVisible = !passwordVisible },
                                     modifier = Modifier.testTag("toggle_password_visibility")
                                 ) {
-                                    Icon(imageVector = image, contentDescription = description)
+                                    Icon(imageVector = image, contentDescription = description, tint = Color(0xFF000000))
                                 }
                             },
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -238,7 +280,9 @@ fun LoginScreen(
                             shape = RoundedCornerShape(10.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = BluePrimary,
-                                unfocusedBorderColor = Color(0xFFCBD5E1)
+                                unfocusedBorderColor = Color(0xFF90A4AE),
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -257,7 +301,8 @@ fun LoginScreen(
                                     text = (loginState as AuthState.Error).message,
                                     color = Color(0xFFC62828),
                                     style = MaterialTheme.typography.bodySmall.copy(
-                                        fontWeight = FontWeight.Medium
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.5.sp
                                     ),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(10.dp)
@@ -286,14 +331,14 @@ fun LoginScreen(
                         ) {
                             if (loginState is AuthState.Loading) {
                                 CircularProgressIndicator(
-                                    color = Color.White,
+                                    color = Color(0xFF000000),
                                     strokeWidth = 2.dp,
                                     modifier = Modifier.size(24.dp)
                                 )
                             } else {
                                 Text(
                                     text = "دخول",
-                                    color = Color.White,
+                                    color = Color(0xFF000000),
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 16.sp

@@ -98,7 +98,7 @@ fun CategoriesManagementScreen(
             // App Bar
             Surface(
                 color = BluePrimary,
-                shadowElevation = 4.dp,
+                shadowElevation = 3.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -114,7 +114,7 @@ fun CategoriesManagementScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "رجوع",
-                            tint = Color.White
+                            tint = Color(0xFF000000)
                         )
                     }
 
@@ -122,7 +122,7 @@ fun CategoriesManagementScreen(
 
                     Text(
                         text = "إدارة الأنواع",
-                        color = Color.White,
+                        color = Color(0xFF000000),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 19.sp
@@ -154,7 +154,7 @@ fun CategoriesManagementScreen(
                             color = Color(0xFF1E293B)
                         )
                         Text(
-                            text = "إجمالي: ${sortedCategories.size} نوع",
+                            text = "إجمالي: ${sortedCategories.size} نوع تفصيل",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 13.sp,
                                 color = Color(0xFF64748B)
@@ -178,7 +178,7 @@ fun CategoriesManagementScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "إضافة نوع",
+                                text = "إضافة نوع تفصيل",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
@@ -281,7 +281,7 @@ fun CategoriesManagementScreen(
     if (editingCategory != null) {
         val cat = editingCategory!!
         CategoryInputDialog(
-            title = "تعديل اسم النوع",
+            title = "تعديل اسم نوع التفصيل",
             initialName = cat.name,
             confirmButtonText = "حفظ التعديل",
             onDismiss = { editingCategory = null },
@@ -352,7 +352,7 @@ fun CategoriesManagementScreen(
             },
             title = {
                 Text(
-                    text = "تأكيد حذف النوع",
+                    text = "تأكيد حذف نوع التفصيل",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = RedButton
@@ -360,7 +360,7 @@ fun CategoriesManagementScreen(
             },
             text = {
                 Text(
-                    text = "هل أنت متأكد من رغبتك في حذف النوع \"${cat.name}\"؟",
+                    text = "هل أنت متأكد من رغبتك في حذف نوع التفصيل \"${cat.name}\"؟",
                     fontSize = 15.sp,
                     color = Color(0xFF212121)
                 )
@@ -590,7 +590,7 @@ private fun CategoryInputDialog(
                         name = it
                         errorMessage = null
                     },
-                    label = { Text("اسم النوع") },
+                    label = { Text("اسم نوع التفصيل") },
                     placeholder = { Text("مثال: دشداشة، ثوب كويتي...") },
                     leadingIcon = {
                         Icon(
@@ -638,7 +638,7 @@ private fun CategoryInputDialog(
                         onClick = {
                             val trimmed = name.trim()
                             if (trimmed.isBlank()) {
-                                errorMessage = "يرجى إدخال اسم النوع"
+                                errorMessage = "يرجى إدخال اسم نوع التفصيل"
                             } else {
                                 onSave(trimmed) { err ->
                                     errorMessage = err

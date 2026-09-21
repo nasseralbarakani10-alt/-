@@ -50,28 +50,24 @@ class ReportsRobolectricTest {
             cutterPriceDao = db.cutterPriceDao(),
             tailorPriceDao = db.tailorPriceDao(),
             userDao = db.userDao(),
-            userPermissionsDao = db.userPermissionsDao()
+            userPermissionsDao = db.userPermissionsDao(),
+            cutterReportExpenseDao = db.cutterReportExpenseDao(),
+            tailorReportExpenseDao = db.tailorReportExpenseDao()
         )
         val sessionManager = SessionManager(context, repository, CoroutineScope(Dispatchers.Unconfined))
         runBlocking {
             val adminId = repository.insertUser(
                 User(
                     username = "admin",
-                    passwordHash = "admin",
-                    displayName = "Admin",
+                    passwordHash = "hash",
+                    salt = "salt",
                     isAdmin = true
                 )
             )
-            repository.insertUserPermissions(
-                UserPermissions(
-                    userId = adminId,
-                    canCreateOrders = true,
-                    canEditOrders = true,
-                    canDeleteOrders = true,
-                    canAccessReports = true
-                )
-            )
-            sessionManager.login("admin", "admin")
+            val adminUser = repository.getUserById(adminId)!!
+            val adminPerms = UserPermissions.allEnabled(adminId)
+            repository.insertOrUpdatePermissions(adminPerms)
+            sessionManager.setSession(adminUser, adminPerms)
         }
         ordersViewModel = OrdersViewModel(repository, sessionManager)
     }
@@ -84,8 +80,8 @@ class ReportsRobolectricTest {
     @Test
     fun testDailyAndDateRangeQueries() = runBlocking {
         val catId = repository.insertCategory(Category(name = "قطري", isDefault = true))
-        val cutterId = repository.insertCutter(Cutter(name = "أحمد القصاص", isDefault = true))
-        val tailorId = repository.insertTailor(Tailor(name = "محمد الخياط", isDefault = true))
+        val cutterId = repository.insertCutter(Cutter(name = "أحمد القصاص"))
+        val tailorId = repository.insertTailor(Tailor(name = "محمد الخياط"))
 
         val today = Calendar.getInstance()
         val todayStart = getStartOfDay(today)
@@ -140,5 +136,33 @@ class ReportsRobolectricTest {
             categoryId = catId
         ).first()
         assertEquals(2, filtered.size)
+    }
+
+    @Test
+    fun testCutterAndTailorReportExpensesPersistence() = runBlocking {
+        val cutterId = repository.insertCutter(Cutter(name = "سامي القصاص"))
+        val tailorId = repository.insertTailor(Tailor(name = "عمر الخياط"))
+
+        val startPeriod = 1700000000000L
+        val endPeriod = 1700086400000L
+
+        // Initially no expense saved
+        val initialCutterExpense = repository.getCutterReportExpenseDirect(cutterId, startPeriod, endPeriod)
+        assertEquals(null, initialCutterExpense)
+
+        // Save cutter expense
+        repository.saveCutterReportExpense(cutterId, startPeriod, endPeriod, 1500.0)
+        val savedCutterExpense = repository.getCutterReportExpenseDirect(cutterId, startPeriod, endPeriod)
+        assertEquals(1500.0, savedCutterExpense?.expenseAmount ?: 0.0, 0.001)
+
+        // Update cutter expense (upsert)
+        repository.saveCutterReportExpense(cutterId, startPeriod, endPeriod, 2000.0)
+        val updatedCutterExpense = repository.getCutterReportExpenseDirect(cutterId, startPeriod, endPeriod)
+        assertEquals(2000.0, updatedCutterExpense?.expenseAmount ?: 0.0, 0.001)
+
+        // Save tailor expense
+        repository.saveTailorReportExpense(tailorId, startPeriod, endPeriod, 3200.0)
+        val savedTailorExpense = repository.getTailorReportExpenseDirect(tailorId, startPeriod, endPeriod)
+        assertEquals(3200.0, savedTailorExpense?.expenseAmount ?: 0.0, 0.001)
     }
 }

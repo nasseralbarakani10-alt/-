@@ -28,6 +28,18 @@ class AppViewModelFactory(
             modelClass.isAssignableFrom(TailorsViewModel::class.java) -> {
                 TailorsViewModel(repository, sessionManager) as T
             }
+            modelClass.isAssignableFrom(UsersViewModel::class.java) -> {
+                UsersViewModel(repository, sessionManager) as T
+            }
+            modelClass.isAssignableFrom(DevicesViewModel::class.java) -> {
+                DevicesViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(MessagingViewModel::class.java) -> {
+                MessagingViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(SettingsViewModel::class.java) -> {
+                SettingsViewModel(repository) as T
+            }
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }

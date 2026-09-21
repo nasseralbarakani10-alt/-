@@ -32,9 +32,13 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -60,6 +64,7 @@ import com.example.data.model.Tailor
 import com.example.ui.theme.BluePrimary
 import com.example.ui.theme.GreenButton
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddOrderDialog(
     categories: List<Category>,
@@ -231,15 +236,19 @@ fun AddOrderDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // 4. النوع — dropdown showing all Category names ordered by sortOrder, sourced live from Room
-                Box(modifier = Modifier.fillMaxWidth()) {
+                // 4. نوع التفصيل — ExposedDropdownMenuBox
+                ExposedDropdownMenuBox(
+                    expanded = categoryDropdownExpanded,
+                    onExpandedChange = { categoryDropdownExpanded = it },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     OutlinedTextField(
                         value = selectedCategory?.name ?: "",
                         onValueChange = {},
                         readOnly = true,
                         label = {
                             Text(
-                                text = "النوع",
+                                text = "نوع التفصيل",
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
@@ -248,7 +257,7 @@ fun AddOrderDialog(
                         },
                         placeholder = {
                             Text(
-                                text = "اختر النوع (مثل: قطري، سعودي...)",
+                                text = "اختر نوع التفصيل (مثل: قطري، سعودي...)",
                                 style = TextStyle(
                                     fontSize = 15.sp,
                                     color = Color(0xFF757575),
@@ -269,24 +278,18 @@ fun AddOrderDialog(
                             )
                         },
                         trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "اختر",
-                                tint = Color(0xFF1565C0),
-                                modifier = Modifier.size(28.dp)
-                            )
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded)
                         },
                         colors = appTextFieldColors(),
                         modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                             .fillMaxWidth()
-                            .clickable { categoryDropdownExpanded = true }
                             .testTag("category_dropdown_field")
                     )
 
-                    DropdownMenu(
+                    ExposedDropdownMenu(
                         expanded = categoryDropdownExpanded,
-                        onDismissRequest = { categoryDropdownExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.85f)
+                        onDismissRequest = { categoryDropdownExpanded = false }
                     ) {
                         categories.forEach { category ->
                             DropdownMenuItem(
@@ -330,8 +333,12 @@ fun AddOrderDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // 6. القصاص — dropdown showing only Cutters where isActive = true with "الافتراضي" at top
-                Box(modifier = Modifier.fillMaxWidth()) {
+                // 6. القصاص — ExposedDropdownMenuBox showing only Cutters where isActive = true with "الافتراضي" at top
+                ExposedDropdownMenuBox(
+                    expanded = cutterDropdownExpanded,
+                    onExpandedChange = { cutterDropdownExpanded = it },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     OutlinedTextField(
                         value = selectedCutter?.name ?: "الافتراضي",
                         onValueChange = {},
@@ -358,24 +365,18 @@ fun AddOrderDialog(
                             )
                         },
                         trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "اختر",
-                                tint = Color(0xFF1565C0),
-                                modifier = Modifier.size(28.dp)
-                            )
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = cutterDropdownExpanded)
                         },
                         colors = appTextFieldColors(),
                         modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                             .fillMaxWidth()
-                            .clickable { cutterDropdownExpanded = true }
                             .testTag("cutter_dropdown_field")
                     )
 
-                    DropdownMenu(
+                    ExposedDropdownMenu(
                         expanded = cutterDropdownExpanded,
-                        onDismissRequest = { cutterDropdownExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.85f)
+                        onDismissRequest = { cutterDropdownExpanded = false }
                     ) {
                         DropdownMenuItem(
                             text = {
@@ -412,8 +413,12 @@ fun AddOrderDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // 7. الخياط — same as القصاص but for Tailor with "الافتراضي" at top
-                Box(modifier = Modifier.fillMaxWidth()) {
+                // 7. الخياط — ExposedDropdownMenuBox with "الافتراضي" at top
+                ExposedDropdownMenuBox(
+                    expanded = tailorDropdownExpanded,
+                    onExpandedChange = { tailorDropdownExpanded = it },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     OutlinedTextField(
                         value = selectedTailor?.name ?: "الافتراضي",
                         onValueChange = {},
@@ -440,24 +445,18 @@ fun AddOrderDialog(
                             )
                         },
                         trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "اختر",
-                                tint = Color(0xFF1565C0),
-                                modifier = Modifier.size(28.dp)
-                            )
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = tailorDropdownExpanded)
                         },
                         colors = appTextFieldColors(),
                         modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                             .fillMaxWidth()
-                            .clickable { tailorDropdownExpanded = true }
                             .testTag("tailor_dropdown_field")
                     )
 
-                    DropdownMenu(
+                    ExposedDropdownMenu(
                         expanded = tailorDropdownExpanded,
-                        onDismissRequest = { tailorDropdownExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.85f)
+                        onDismissRequest = { tailorDropdownExpanded = false }
                     ) {
                         DropdownMenuItem(
                             text = {
@@ -608,7 +607,7 @@ fun AddOrderDialog(
                             } else if (phoneNumber.isBlank()) {
                                 errorMessage = "يرجى إدخال رقم الهاتف"
                             } else if (cat == null) {
-                                errorMessage = "يرجى اختيار النوع"
+                                errorMessage = "يرجى اختيار نوع التفصيل"
                             } else if (fabricType.isBlank()) {
                                 errorMessage = "يرجى إدخال الصنف"
                             } else {

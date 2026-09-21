@@ -49,8 +49,12 @@ import com.example.ui.theme.BluePrimary
 import com.example.ui.viewmodel.AuthViewModel
 import com.example.ui.viewmodel.CategoriesViewModel
 import com.example.ui.viewmodel.CuttersViewModel
+import com.example.ui.viewmodel.DevicesViewModel
+import com.example.ui.viewmodel.MessagingViewModel
 import com.example.ui.viewmodel.OrdersViewModel
+import com.example.ui.viewmodel.SettingsViewModel
 import com.example.ui.viewmodel.TailorsViewModel
+import com.example.ui.viewmodel.UsersViewModel
 
 @Composable
 fun MainAppContainer(
@@ -58,7 +62,11 @@ fun MainAppContainer(
     ordersViewModel: OrdersViewModel,
     categoriesViewModel: CategoriesViewModel,
     cuttersViewModel: CuttersViewModel,
-    tailorsViewModel: TailorsViewModel
+    tailorsViewModel: TailorsViewModel,
+    usersViewModel: UsersViewModel? = null,
+    devicesViewModel: DevicesViewModel? = null,
+    messagingViewModel: MessagingViewModel? = null,
+    settingsViewModel: SettingsViewModel? = null
 ) {
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
     val isSessionLoading by authViewModel.isSessionLoading.collectAsState()
@@ -149,17 +157,17 @@ fun MainAppContainer(
                             label = {
                                 Text(
                                     text = item.title,
-                                    fontSize = 11.sp,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
                                     maxLines = 1
                                 )
                             },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = BluePrimary,
-                                selectedTextColor = BluePrimary,
-                                unselectedIconColor = Color(0xFF64748B),
-                                unselectedTextColor = Color(0xFF64748B),
-                                indicatorColor = Color(0xFFE3F2FD)
+                                selectedIconColor = Color(0xFF000000),
+                                selectedTextColor = Color(0xFF000000),
+                                unselectedIconColor = Color(0xFF37474F),
+                                unselectedTextColor = Color(0xFF37474F),
+                                indicatorColor = Color(0xFFE1F5FE)
                             ),
                             modifier = Modifier.testTag("nav_item_${item.route}")
                         )
@@ -177,7 +185,8 @@ fun MainAppContainer(
                         ordersViewModel = ordersViewModel,
                         categoriesViewModel = categoriesViewModel,
                         cuttersViewModel = cuttersViewModel,
-                        tailorsViewModel = tailorsViewModel
+                        tailorsViewModel = tailorsViewModel,
+                        messagingViewModel = messagingViewModel
                     )
                 }
                 composable(NavRoutes.REPORTS) {
@@ -200,7 +209,11 @@ fun MainAppContainer(
                 composable(NavRoutes.SETTINGS) {
                     SettingsScreen(
                         categoriesViewModel = categoriesViewModel,
-                        authViewModel = authViewModel
+                        authViewModel = authViewModel,
+                        usersViewModel = usersViewModel,
+                        devicesViewModel = devicesViewModel,
+                        messagingViewModel = messagingViewModel,
+                        settingsViewModel = settingsViewModel
                     )
                 }
             }

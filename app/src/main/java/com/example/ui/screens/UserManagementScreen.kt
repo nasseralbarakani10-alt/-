@@ -23,10 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Visibility
@@ -43,7 +40,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -73,17 +69,17 @@ import com.example.data.model.User
 import com.example.data.model.UserPermissions
 import com.example.data.model.UserWithPermissions
 import com.example.ui.theme.BluePrimary
-import com.example.ui.viewmodel.AuthViewModel
+import com.example.ui.viewmodel.UsersViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun UserManagementScreen(
-    authViewModel: AuthViewModel,
+    usersViewModel: UsersViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val currentUser by authViewModel.currentUser.collectAsState()
-    val allUsersWithPerms by authViewModel.allUsersWithPermissions.collectAsState()
+    val currentUser by usersViewModel.currentUser.collectAsState()
+    val allUsersWithPerms by usersViewModel.allUsersWithPermissions.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -91,7 +87,7 @@ fun UserManagementScreen(
     var editingUserWithPerms by remember { mutableStateOf<UserWithPermissions?>(null) }
     var userToToggleStatus by remember { mutableStateOf<User?>(null) }
 
-    // Enforce admin permission at the screen / logic level
+    // Enforce admin permission at the screen / logic level (enforced in navigation too)
     if (currentUser?.isAdmin != true) {
         Column(
             modifier = modifier
@@ -125,7 +121,7 @@ fun UserManagementScreen(
                 onClick = onBack,
                 colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
             ) {
-                Text("العودة", color = Color.White)
+                Text("العودة", color = Color(0xFF000000), fontWeight = FontWeight.Bold)
             }
         }
         return
@@ -154,7 +150,7 @@ fun UserManagementScreen(
             // Header
             Surface(
                 color = BluePrimary,
-                shadowElevation = 4.dp,
+                shadowElevation = 3.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -170,15 +166,15 @@ fun UserManagementScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "الرجوع",
-                            tint = Color.White
+                            tint = Color(0xFF000000)
                         )
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
-                        text = "إدارة المستخدمين والصلاحيات",
-                        color = Color.White,
+                        text = "إدارة المستخدمين",
+                        color = Color(0xFF000000),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
@@ -210,7 +206,24 @@ fun UserManagementScreen(
                             userWithPerms = item,
                             isSelf = item.user.id == currentUser?.id,
                             onEditPermissions = { editingUserWithPerms = item },
-                            onToggleStatus = { userToToggleStatus = item.user }
+                            onToggleActive = { active ->
+                                usersViewModel.setUserActive(
+                                    targetUser = item.user,
+                                    isActive = active,
+                                    onSuccess = {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                if (active) "تم تفعيل الحساب" else "تم إيقاف الحساب"
+                                            )
+                                        }
+                                    },
+                                    onError = { error ->
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar(error)
+                                        }
+                                    }
+                                )
+                            }
                         )
                     }
                     item {
@@ -225,12 +238,26 @@ fun UserManagementScreen(
     if (showAddUserDialog) {
         AddUserDialog(
             onDismiss = { showAddUserDialog = false },
-            onConfirm = { username, password, isAdmin, permissions ->
-                authViewModel.createUser(
+            onConfirm = { username, password, confirmPassword, isAdmin, canAccessReports, canAccessSettings, canEdit, canDelete, canChangeReadyStatus,
+                          canAccessReportsRecent, canAccessReportsStatement, canAccessReportsCustomSearch, canAccessReportsDaily, canAccessReportsMonthly, canAccessReportsYearly, canAccessCutterReports, canAccessTailorReports ->
+                usersViewModel.createUser(
                     username = username,
                     password = password,
+                    confirmPassword = confirmPassword,
                     isAdmin = isAdmin,
-                    permissions = permissions,
+                    canAccessReports = canAccessReports,
+                    canAccessSettings = canAccessSettings,
+                    canEdit = canEdit,
+                    canDelete = canDelete,
+                    canChangeReadyStatus = canChangeReadyStatus,
+                    canAccessReportsRecent = canAccessReportsRecent,
+                    canAccessReportsStatement = canAccessReportsStatement,
+                    canAccessReportsCustomSearch = canAccessReportsCustomSearch,
+                    canAccessReportsDaily = canAccessReportsDaily,
+                    canAccessReportsMonthly = canAccessReportsMonthly,
+                    canAccessReportsYearly = canAccessReportsYearly,
+                    canAccessCutterReports = canAccessCutterReports,
+                    canAccessTailorReports = canAccessTailorReports,
                     onSuccess = {
                         showAddUserDialog = false
                         coroutineScope.launch {
@@ -252,11 +279,26 @@ fun UserManagementScreen(
         EditUserPermissionsDialog(
             userWithPerms = item,
             onDismiss = { editingUserWithPerms = null },
-            onConfirm = { isAdmin, permissions ->
-                authViewModel.updateUserPermissions(
+            onConfirm = { isAdmin, canAccessReports, canAccessSettings, canEdit, canDelete, canChangeReadyStatus,
+                          canAccessReportsRecent, canAccessReportsStatement, canAccessReportsCustomSearch,
+                          canAccessReportsDaily, canAccessReportsMonthly, canAccessReportsYearly,
+                          canAccessCutterReports, canAccessTailorReports ->
+                usersViewModel.updateUserPermissions(
                     targetUserId = item.user.id,
                     isAdmin = isAdmin,
-                    permissions = permissions,
+                    canAccessReports = canAccessReports,
+                    canAccessSettings = canAccessSettings,
+                    canEdit = canEdit,
+                    canDelete = canDelete,
+                    canChangeReadyStatus = canChangeReadyStatus,
+                    canAccessReportsRecent = canAccessReportsRecent,
+                    canAccessReportsStatement = canAccessReportsStatement,
+                    canAccessReportsCustomSearch = canAccessReportsCustomSearch,
+                    canAccessReportsDaily = canAccessReportsDaily,
+                    canAccessReportsMonthly = canAccessReportsMonthly,
+                    canAccessReportsYearly = canAccessReportsYearly,
+                    canAccessCutterReports = canAccessCutterReports,
+                    canAccessTailorReports = canAccessTailorReports,
                     onSuccess = {
                         editingUserWithPerms = null
                         coroutineScope.launch {
@@ -272,62 +314,6 @@ fun UserManagementScreen(
             }
         )
     }
-
-    // Toggle Suspend Status Dialog
-    userToToggleStatus?.let { user ->
-        val isSuspending = user.isActive
-        AlertDialog(
-            onDismissRequest = { userToToggleStatus = null },
-            title = {
-                Text(
-                    text = if (isSuspending) "إيقاف الحساب" else "تفعيل الحساب",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    text = if (isSuspending) {
-                        "هل أنت متأكد من إيقاف حساب المستخدم (${user.username})؟ لن يتمكن من تسجيل الدخول حتى تتم إعادة تفعيله."
-                    } else {
-                        "هل تريد إعادة تفعيل حساب المستخدم (${user.username}) والسماح له بتسجيل الدخول؟"
-                    }
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        authViewModel.toggleUserActiveStatus(
-                            targetUser = user,
-                            onSuccess = {
-                                userToToggleStatus = null
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        if (isSuspending) "تم إيقاف الحساب" else "تم تفعيل الحساب"
-                                    )
-                                }
-                            },
-                            onError = { error ->
-                                userToToggleStatus = null
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar(error)
-                                }
-                            }
-                        )
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isSuspending) Color(0xFFDC2626) else Color(0xFF16A34A)
-                    )
-                ) {
-                    Text(if (isSuspending) "إيقاف الحساب" else "تفعيل الحساب", color = Color.White)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { userToToggleStatus = null }) {
-                    Text("إلغاء")
-                }
-            }
-        )
-    }
 }
 
 @Composable
@@ -335,7 +321,7 @@ fun UserCardItem(
     userWithPerms: UserWithPermissions,
     isSelf: Boolean,
     onEditPermissions: () -> Unit,
-    onToggleStatus: () -> Unit
+    onToggleActive: (Boolean) -> Unit
 ) {
     val user = userWithPerms.user
     val isActive = user.isActive
@@ -346,7 +332,7 @@ fun UserCardItem(
             .testTag("user_card_${user.id}"),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isActive) Color.White else Color(0xFFF1F5F9)
+            containerColor = if (isActive) Color.White else Color(0xFFF8FAFC)
         ),
         border = BorderStroke(
             1.dp,
@@ -414,21 +400,23 @@ fun UserCardItem(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            // Admin / Worker Badge
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = if (user.isAdmin) Color(0xFFDBEAFE) else Color(0xFFF3F4F6)
-                            ) {
-                                Text(
-                                    text = if (user.isAdmin) "مدير نظام" else "مستخدم عادي",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = if (user.isAdmin) Color(0xFF1D4ED8) else Color(0xFF4B5563),
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
+                            // Admin Badge if isAdmin
+                            if (user.isAdmin) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFFDBEAFE)
+                                ) {
+                                    Text(
+                                        text = "مدير",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF1D4ED8),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
                             }
 
-                            // Active / Suspended Badge
+                            // Active / Suspended Indicator
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
                                 color = if (isActive) Color(0xFFDCFCE7) else Color(0xFFFEE2E2)
@@ -445,7 +433,7 @@ fun UserCardItem(
                     }
                 }
 
-                // Actions
+                // Actions: Toggle to suspend/reactivate + Edit permissions button
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
                         onClick = onEditPermissions,
@@ -458,18 +446,21 @@ fun UserCardItem(
                         )
                     }
 
-                    if (!isSelf) {
-                        IconButton(
-                            onClick = onToggleStatus,
-                            modifier = Modifier.testTag("toggle_status_user_${user.id}")
-                        ) {
-                            Icon(
-                                imageVector = if (isActive) Icons.Default.Lock else Icons.Default.LockOpen,
-                                contentDescription = if (isActive) "إيقاف الحساب" else "تفعيل الحساب",
-                                tint = if (isActive) Color(0xFFEF4444) else Color(0xFF16A34A)
-                            )
-                        }
-                    }
+                    // Active Toggle Switch / Checkbox
+                    Switch(
+                        checked = isActive,
+                        onCheckedChange = { onToggleActive(it) },
+                        enabled = !isSelf,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFF16A34A),
+                            uncheckedThumbColor = Color.White,
+                            uncheckedTrackColor = Color(0xFFEF4444)
+                        ),
+                        modifier = Modifier
+                            .padding(start = 4.dp)
+                            .testTag("toggle_active_${user.id}")
+                    )
                 }
             }
         }
@@ -479,25 +470,50 @@ fun UserCardItem(
 @Composable
 fun AddUserDialog(
     onDismiss: () -> Unit,
-    onConfirm: (username: String, password: String, isAdmin: Boolean, permissions: UserPermissions) -> Unit
+    onConfirm: (
+        username: String,
+        password: String,
+        confirmPassword: String,
+        isAdmin: Boolean,
+        canAccessReports: Boolean,
+        canAccessSettings: Boolean,
+        canEdit: Boolean,
+        canDelete: Boolean,
+        canChangeReadyStatus: Boolean,
+        canAccessReportsRecent: Boolean,
+        canAccessReportsStatement: Boolean,
+        canAccessReportsCustomSearch: Boolean,
+        canAccessReportsDaily: Boolean,
+        canAccessReportsMonthly: Boolean,
+        canAccessReportsYearly: Boolean,
+        canAccessCutterReports: Boolean,
+        canAccessTailorReports: Boolean
+    ) -> Unit
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
     var isAdmin by remember { mutableStateOf(false) }
 
-    // Permissions toggles
-    var canAccessReports by remember { mutableStateOf(false) }
-    var canAccessReportsRecent by remember { mutableStateOf(false) }
-    var canAccessReportsStatement by remember { mutableStateOf(false) }
-    var canAccessReportsCustomSearch by remember { mutableStateOf(false) }
-    var canAccessReportsDaily by remember { mutableStateOf(false) }
-    var canAccessReportsMonthly by remember { mutableStateOf(false) }
-    var canAccessReportsYearly by remember { mutableStateOf(false) }
-    var canAccessSettings by remember { mutableStateOf(false) }
-    var canEdit by remember { mutableStateOf(false) }
-    var canDelete by remember { mutableStateOf(false) }
-    var canChangeReadyStatus by remember { mutableStateOf(false) }
+    // Permissions default to true for normal user as requested
+    var canAccessReports by remember { mutableStateOf(true) }
+    var canAccessSettings by remember { mutableStateOf(true) }
+    var canEdit by remember { mutableStateOf(true) }
+    var canDelete by remember { mutableStateOf(true) }
+    var canChangeReadyStatus by remember { mutableStateOf(true) }
+
+    var canAccessReportsRecent by remember { mutableStateOf(true) }
+    var canAccessReportsStatement by remember { mutableStateOf(true) }
+    var canAccessReportsCustomSearch by remember { mutableStateOf(true) }
+    var canAccessReportsDaily by remember { mutableStateOf(true) }
+    var canAccessReportsMonthly by remember { mutableStateOf(true) }
+    var canAccessReportsYearly by remember { mutableStateOf(true) }
+    var canAccessCutterReports by remember { mutableStateOf(true) }
+    var canAccessTailorReports by remember { mutableStateOf(true) }
+
+    var localError by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -515,9 +531,27 @@ fun AddUserDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (localError != null) {
+                    Surface(
+                        color = Color(0xFFFEE2E2),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = localError ?: "",
+                            color = Color(0xFFDC2626),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+                }
+
                 OutlinedTextField(
                     value = username,
-                    onValueChange = { username = it },
+                    onValueChange = {
+                        username = it
+                        localError = null
+                    },
                     label = { Text("اسم المستخدم") },
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
@@ -526,7 +560,10 @@ fun AddUserDialog(
 
                 OutlinedTextField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = {
+                        password = it
+                        localError = null
+                    },
                     label = { Text("كلمة المرور") },
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -540,6 +577,27 @@ fun AddUserDialog(
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth().testTag("add_password_input")
+                )
+
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = {
+                        confirmPassword = it
+                        localError = null
+                    },
+                    label = { Text("تأكيد كلمة المرور") },
+                    trailingIcon = {
+                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                            Icon(
+                                imageVector = if (confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().testTag("add_confirm_password_input")
                 )
 
                 // Admin Switch
@@ -585,65 +643,93 @@ fun AddUserDialog(
                     )
 
                     PermissionCheckboxItem(
-                        label = "الوصول لتبويب التقارير",
+                        label = "الوصول العام للتقارير (canAccessReports)",
                         checked = canAccessReports,
                         onCheckedChange = { canAccessReports = it }
                     )
-                    if (canAccessReports) {
-                        Column(modifier = Modifier.padding(start = 16.dp)) {
+
+                    // Sub-report permissions
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "صلاحيات أقسام التقارير التفصيلية:",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF475569)
+                            )
                             PermissionCheckboxItem(
-                                label = "تقرير آخر العمليات",
+                                label = "تقرير آخر العمليات (canAccessReportsRecent)",
                                 checked = canAccessReportsRecent,
                                 onCheckedChange = { canAccessReportsRecent = it }
                             )
                             PermissionCheckboxItem(
-                                label = "تقرير كشف حساب",
+                                label = "كشف حساب عام (canAccessReportsStatement)",
                                 checked = canAccessReportsStatement,
                                 onCheckedChange = { canAccessReportsStatement = it }
                             )
                             PermissionCheckboxItem(
-                                label = "بحث مخصص",
+                                label = "بحث مخصص في التقارير (canAccessReportsCustomSearch)",
                                 checked = canAccessReportsCustomSearch,
                                 onCheckedChange = { canAccessReportsCustomSearch = it }
                             )
                             PermissionCheckboxItem(
-                                label = "التقرير اليومي",
+                                label = "كشف حساب يومي (canAccessReportsDaily)",
                                 checked = canAccessReportsDaily,
                                 onCheckedChange = { canAccessReportsDaily = it }
                             )
                             PermissionCheckboxItem(
-                                label = "التقرير الشهري",
+                                label = "كشف حساب شهري (canAccessReportsMonthly)",
                                 checked = canAccessReportsMonthly,
                                 onCheckedChange = { canAccessReportsMonthly = it }
                             )
                             PermissionCheckboxItem(
-                                label = "التقرير السنوي",
+                                label = "كشف حساب سنوي (canAccessReportsYearly)",
                                 checked = canAccessReportsYearly,
                                 onCheckedChange = { canAccessReportsYearly = it }
+                            )
+                            PermissionCheckboxItem(
+                                label = "تقارير القصاصين (canAccessCutterReports)",
+                                checked = canAccessCutterReports,
+                                onCheckedChange = { canAccessCutterReports = it }
+                            )
+                            PermissionCheckboxItem(
+                                label = "تقارير الخياطين (canAccessTailorReports)",
+                                checked = canAccessTailorReports,
+                                onCheckedChange = { canAccessTailorReports = it }
                             )
                         }
                     }
 
                     PermissionCheckboxItem(
-                        label = "الوصول لتبويب الإعدادات",
+                        label = "الوصول للإعدادات (canAccessSettings)",
                         checked = canAccessSettings,
                         onCheckedChange = { canAccessSettings = it }
                     )
 
                     PermissionCheckboxItem(
-                        label = "تعديل العمليات والطلبات",
+                        label = "تعديل العمليات والطلبات (canEdit)",
                         checked = canEdit,
                         onCheckedChange = { canEdit = it }
                     )
 
                     PermissionCheckboxItem(
-                        label = "حذف العمليات والطلبات",
+                        label = "حذف العمليات والطلبات (canDelete)",
                         checked = canDelete,
                         onCheckedChange = { canDelete = it }
                     )
 
                     PermissionCheckboxItem(
-                        label = "تغيير حالة الجاهزية (جاهز)",
+                        label = "تغيير حالة الجاهزية (canChangeReadyStatus)",
                         checked = canChangeReadyStatus,
                         onCheckedChange = { canChangeReadyStatus = it }
                     )
@@ -653,25 +739,41 @@ fun AddUserDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val permissions = if (isAdmin) {
-                        UserPermissions.allEnabled(0)
-                    } else {
-                        UserPermissions(
-                            userId = 0,
-                            canAccessReports = canAccessReports,
-                            canAccessReportsRecent = canAccessReportsRecent,
-                            canAccessReportsStatement = canAccessReportsStatement,
-                            canAccessReportsCustomSearch = canAccessReportsCustomSearch,
-                            canAccessReportsDaily = canAccessReportsDaily,
-                            canAccessReportsMonthly = canAccessReportsMonthly,
-                            canAccessReportsYearly = canAccessReportsYearly,
-                            canAccessSettings = canAccessSettings,
-                            canEdit = canEdit,
-                            canDelete = canDelete,
-                            canChangeReadyStatus = canChangeReadyStatus
-                        )
+                    if (username.isBlank()) {
+                        localError = "يرجى إدخال اسم المستخدم"
+                        return@Button
                     }
-                    onConfirm(username, password, isAdmin, permissions)
+                    if (password.isEmpty()) {
+                        localError = "يرجى إدخال كلمة المرور"
+                        return@Button
+                    }
+                    if (password != confirmPassword) {
+                        localError = "كلمة المرور غير متطابقة مع تأكيد كلمة المرور"
+                        return@Button
+                    }
+                    if (password.length < 4) {
+                        localError = "يجب أن تتكون كلمة المرور من 4 خانات على الأقل"
+                        return@Button
+                    }
+                    onConfirm(
+                        username,
+                        password,
+                        confirmPassword,
+                        isAdmin,
+                        canAccessReports,
+                        canAccessSettings,
+                        canEdit,
+                        canDelete,
+                        canChangeReadyStatus,
+                        canAccessReportsRecent,
+                        canAccessReportsStatement,
+                        canAccessReportsCustomSearch,
+                        canAccessReportsDaily,
+                        canAccessReportsMonthly,
+                        canAccessReportsYearly,
+                        canAccessCutterReports,
+                        canAccessTailorReports
+                    )
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
                 modifier = Modifier.testTag("confirm_add_user_button")
@@ -691,22 +793,40 @@ fun AddUserDialog(
 fun EditUserPermissionsDialog(
     userWithPerms: UserWithPermissions,
     onDismiss: () -> Unit,
-    onConfirm: (isAdmin: Boolean, permissions: UserPermissions) -> Unit
+    onConfirm: (
+        isAdmin: Boolean,
+        canAccessReports: Boolean,
+        canAccessSettings: Boolean,
+        canEdit: Boolean,
+        canDelete: Boolean,
+        canChangeReadyStatus: Boolean,
+        canAccessReportsRecent: Boolean,
+        canAccessReportsStatement: Boolean,
+        canAccessReportsCustomSearch: Boolean,
+        canAccessReportsDaily: Boolean,
+        canAccessReportsMonthly: Boolean,
+        canAccessReportsYearly: Boolean,
+        canAccessCutterReports: Boolean,
+        canAccessTailorReports: Boolean
+    ) -> Unit
 ) {
     var isAdmin by remember { mutableStateOf(userWithPerms.user.isAdmin) }
     val initialPerms = userWithPerms.permissions ?: UserPermissions.defaultNonAdmin(userWithPerms.user.id)
 
     var canAccessReports by remember { mutableStateOf(initialPerms.canAccessReports) }
+    var canAccessSettings by remember { mutableStateOf(initialPerms.canAccessSettings) }
+    var canEdit by remember { mutableStateOf(initialPerms.canEdit) }
+    var canDelete by remember { mutableStateOf(initialPerms.canDelete) }
+    var canChangeReadyStatus by remember { mutableStateOf(initialPerms.canChangeReadyStatus) }
+
     var canAccessReportsRecent by remember { mutableStateOf(initialPerms.canAccessReportsRecent) }
     var canAccessReportsStatement by remember { mutableStateOf(initialPerms.canAccessReportsStatement) }
     var canAccessReportsCustomSearch by remember { mutableStateOf(initialPerms.canAccessReportsCustomSearch) }
     var canAccessReportsDaily by remember { mutableStateOf(initialPerms.canAccessReportsDaily) }
     var canAccessReportsMonthly by remember { mutableStateOf(initialPerms.canAccessReportsMonthly) }
     var canAccessReportsYearly by remember { mutableStateOf(initialPerms.canAccessReportsYearly) }
-    var canAccessSettings by remember { mutableStateOf(initialPerms.canAccessSettings) }
-    var canEdit by remember { mutableStateOf(initialPerms.canEdit) }
-    var canDelete by remember { mutableStateOf(initialPerms.canDelete) }
-    var canChangeReadyStatus by remember { mutableStateOf(initialPerms.canChangeReadyStatus) }
+    var canAccessCutterReports by remember { mutableStateOf(initialPerms.canAccessCutterReports) }
+    var canAccessTailorReports by remember { mutableStateOf(initialPerms.canAccessTailorReports) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -724,7 +844,7 @@ fun EditUserPermissionsDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Admin Switch
+                // Admin Switch / Checkbox
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = Color(0xFFF1F5F9),
@@ -739,7 +859,7 @@ fun EditUserPermissionsDialog(
                     ) {
                         Column {
                             Text(
-                                text = "حساب مدير نظام (كامل الصلاحيات)",
+                                text = "حساب مدير نظام (isAdmin)",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
@@ -757,103 +877,126 @@ fun EditUserPermissionsDialog(
                     }
                 }
 
-                if (!isAdmin) {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                    Text(
-                        text = "صلاحيات المستخدم:",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color(0xFF1E293B)
-                    )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Text(
+                    text = "صلاحيات المستخدم:",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = Color(0xFF1E293B)
+                )
 
-                    PermissionCheckboxItem(
-                        label = "الوصول لتبويب التقارير",
-                        checked = canAccessReports,
-                        onCheckedChange = { canAccessReports = it }
-                    )
-                    if (canAccessReports) {
-                        Column(modifier = Modifier.padding(start = 16.dp)) {
-                            PermissionCheckboxItem(
-                                label = "تقرير آخر العمليات",
-                                checked = canAccessReportsRecent,
-                                onCheckedChange = { canAccessReportsRecent = it }
-                            )
-                            PermissionCheckboxItem(
-                                label = "تقرير كشف حساب",
-                                checked = canAccessReportsStatement,
-                                onCheckedChange = { canAccessReportsStatement = it }
-                            )
-                            PermissionCheckboxItem(
-                                label = "بحث مخصص",
-                                checked = canAccessReportsCustomSearch,
-                                onCheckedChange = { canAccessReportsCustomSearch = it }
-                            )
-                            PermissionCheckboxItem(
-                                label = "التقرير اليومي",
-                                checked = canAccessReportsDaily,
-                                onCheckedChange = { canAccessReportsDaily = it }
-                            )
-                            PermissionCheckboxItem(
-                                label = "التقرير الشهري",
-                                checked = canAccessReportsMonthly,
-                                onCheckedChange = { canAccessReportsMonthly = it }
-                            )
-                            PermissionCheckboxItem(
-                                label = "التقرير السنوي",
-                                checked = canAccessReportsYearly,
-                                onCheckedChange = { canAccessReportsYearly = it }
-                            )
-                        }
+                PermissionCheckboxItem(
+                    label = "الوصول العام للتقارير (canAccessReports)",
+                    checked = if (isAdmin) true else canAccessReports,
+                    onCheckedChange = { if (!isAdmin) canAccessReports = it }
+                )
+
+                // Sub-report permissions
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "صلاحيات أقسام التقارير التفصيلية:",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF475569)
+                        )
+                        PermissionCheckboxItem(
+                            label = "تقرير آخر العمليات (canAccessReportsRecent)",
+                            checked = if (isAdmin) true else canAccessReportsRecent,
+                            onCheckedChange = { if (!isAdmin) canAccessReportsRecent = it }
+                        )
+                        PermissionCheckboxItem(
+                            label = "كشف حساب عام (canAccessReportsStatement)",
+                            checked = if (isAdmin) true else canAccessReportsStatement,
+                            onCheckedChange = { if (!isAdmin) canAccessReportsStatement = it }
+                        )
+                        PermissionCheckboxItem(
+                            label = "بحث مخصص في التقارير (canAccessReportsCustomSearch)",
+                            checked = if (isAdmin) true else canAccessReportsCustomSearch,
+                            onCheckedChange = { if (!isAdmin) canAccessReportsCustomSearch = it }
+                        )
+                        PermissionCheckboxItem(
+                            label = "كشف حساب يومي (canAccessReportsDaily)",
+                            checked = if (isAdmin) true else canAccessReportsDaily,
+                            onCheckedChange = { if (!isAdmin) canAccessReportsDaily = it }
+                        )
+                        PermissionCheckboxItem(
+                            label = "كشف حساب شهري (canAccessReportsMonthly)",
+                            checked = if (isAdmin) true else canAccessReportsMonthly,
+                            onCheckedChange = { if (!isAdmin) canAccessReportsMonthly = it }
+                        )
+                        PermissionCheckboxItem(
+                            label = "كشف حساب سنوي (canAccessReportsYearly)",
+                            checked = if (isAdmin) true else canAccessReportsYearly,
+                            onCheckedChange = { if (!isAdmin) canAccessReportsYearly = it }
+                        )
+                        PermissionCheckboxItem(
+                            label = "تقارير القصاصين (canAccessCutterReports)",
+                            checked = if (isAdmin) true else canAccessCutterReports,
+                            onCheckedChange = { if (!isAdmin) canAccessCutterReports = it }
+                        )
+                        PermissionCheckboxItem(
+                            label = "تقارير الخياطين (canAccessTailorReports)",
+                            checked = if (isAdmin) true else canAccessTailorReports,
+                            onCheckedChange = { if (!isAdmin) canAccessTailorReports = it }
+                        )
                     }
-
-                    PermissionCheckboxItem(
-                        label = "الوصول لتبويب الإعدادات",
-                        checked = canAccessSettings,
-                        onCheckedChange = { canAccessSettings = it }
-                    )
-
-                    PermissionCheckboxItem(
-                        label = "تعديل العمليات والطلبات",
-                        checked = canEdit,
-                        onCheckedChange = { canEdit = it }
-                    )
-
-                    PermissionCheckboxItem(
-                        label = "حذف العمليات والطلبات",
-                        checked = canDelete,
-                        onCheckedChange = { canDelete = it }
-                    )
-
-                    PermissionCheckboxItem(
-                        label = "تغيير حالة الجاهزية (جاهز)",
-                        checked = canChangeReadyStatus,
-                        onCheckedChange = { canChangeReadyStatus = it }
-                    )
                 }
+
+                PermissionCheckboxItem(
+                    label = "الوصول للإعدادات (canAccessSettings)",
+                    checked = if (isAdmin) true else canAccessSettings,
+                    onCheckedChange = { if (!isAdmin) canAccessSettings = it }
+                )
+
+                PermissionCheckboxItem(
+                    label = "تعديل العمليات والطلبات (canEdit)",
+                    checked = if (isAdmin) true else canEdit,
+                    onCheckedChange = { if (!isAdmin) canEdit = it }
+                )
+
+                PermissionCheckboxItem(
+                    label = "حذف العمليات والطلبات (canDelete)",
+                    checked = if (isAdmin) true else canDelete,
+                    onCheckedChange = { if (!isAdmin) canDelete = it }
+                )
+
+                PermissionCheckboxItem(
+                    label = "تغيير حالة الجاهزية (canChangeReadyStatus)",
+                    checked = if (isAdmin) true else canChangeReadyStatus,
+                    onCheckedChange = { if (!isAdmin) canChangeReadyStatus = it }
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    val permissions = if (isAdmin) {
-                        UserPermissions.allEnabled(userWithPerms.user.id)
-                    } else {
-                        UserPermissions(
-                            userId = userWithPerms.user.id,
-                            canAccessReports = canAccessReports,
-                            canAccessReportsRecent = canAccessReportsRecent,
-                            canAccessReportsStatement = canAccessReportsStatement,
-                            canAccessReportsCustomSearch = canAccessReportsCustomSearch,
-                            canAccessReportsDaily = canAccessReportsDaily,
-                            canAccessReportsMonthly = canAccessReportsMonthly,
-                            canAccessReportsYearly = canAccessReportsYearly,
-                            canAccessSettings = canAccessSettings,
-                            canEdit = canEdit,
-                            canDelete = canDelete,
-                            canChangeReadyStatus = canChangeReadyStatus
-                        )
-                    }
-                    onConfirm(isAdmin, permissions)
+                    onConfirm(
+                        isAdmin,
+                        canAccessReports,
+                        canAccessSettings,
+                        canEdit,
+                        canDelete,
+                        canChangeReadyStatus,
+                        canAccessReportsRecent,
+                        canAccessReportsStatement,
+                        canAccessReportsCustomSearch,
+                        canAccessReportsDaily,
+                        canAccessReportsMonthly,
+                        canAccessReportsYearly,
+                        canAccessCutterReports,
+                        canAccessTailorReports
+                    )
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
             ) {

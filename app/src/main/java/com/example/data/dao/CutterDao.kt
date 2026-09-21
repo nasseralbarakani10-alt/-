@@ -20,6 +20,9 @@ interface CutterDao {
     @Query("SELECT * FROM cutters WHERE id = :id")
     fun getById(id: Long): Flow<Cutter?>
 
+    @Query("UPDATE cutters SET usageCount = usageCount + 1 WHERE id = :id")
+    suspend fun incrementUsageCount(id: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(cutter: Cutter): Long
 

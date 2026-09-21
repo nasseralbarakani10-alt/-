@@ -31,8 +31,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.components.appTextFieldColors
 import com.example.ui.theme.BluePrimary
 import com.example.ui.viewmodel.AuthViewModel
 
@@ -59,7 +61,8 @@ fun ChangePasswordDialog(
             Text(
                 text = "تغيير كلمة المرور",
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                fontSize = 18.sp,
+                color = Color(0xFF0F172A)
             )
         },
         text = {
@@ -74,6 +77,8 @@ fun ChangePasswordDialog(
                         errorMessage = null
                     },
                     label = { Text("كلمة المرور الحالية") },
+                    textStyle = TextStyle(fontSize = 15.sp, color = Color.Black),
+                    colors = appTextFieldColors(),
                     trailingIcon = {
                         IconButton(onClick = { currentVisible = !currentVisible }) {
                             Icon(
@@ -95,6 +100,8 @@ fun ChangePasswordDialog(
                         errorMessage = null
                     },
                     label = { Text("كلمة المرور الجديدة") },
+                    textStyle = TextStyle(fontSize = 15.sp, color = Color.Black),
+                    colors = appTextFieldColors(),
                     trailingIcon = {
                         IconButton(onClick = { newVisible = !newVisible }) {
                             Icon(
@@ -116,6 +123,8 @@ fun ChangePasswordDialog(
                         errorMessage = null
                     },
                     label = { Text("تأكيد كلمة المرور الجديدة") },
+                    textStyle = TextStyle(fontSize = 15.sp, color = Color.Black),
+                    colors = appTextFieldColors(),
                     trailingIcon = {
                         IconButton(onClick = { confirmVisible = !confirmVisible }) {
                             Icon(

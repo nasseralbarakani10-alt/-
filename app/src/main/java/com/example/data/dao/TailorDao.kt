@@ -20,6 +20,9 @@ interface TailorDao {
     @Query("SELECT * FROM tailors WHERE id = :id")
     fun getById(id: Long): Flow<Tailor?>
 
+    @Query("UPDATE tailors SET usageCount = usageCount + 1 WHERE id = :id")
+    suspend fun incrementUsageCount(id: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(tailor: Tailor): Long
 

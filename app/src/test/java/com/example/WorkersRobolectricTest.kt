@@ -53,7 +53,9 @@ class WorkersRobolectricTest {
             cutterPriceDao = db.cutterPriceDao(),
             tailorPriceDao = db.tailorPriceDao(),
             userDao = db.userDao(),
-            userPermissionsDao = db.userPermissionsDao()
+            userPermissionsDao = db.userPermissionsDao(),
+            cutterReportExpenseDao = db.cutterReportExpenseDao(),
+            tailorReportExpenseDao = db.tailorReportExpenseDao()
         )
         val sessionManager = SessionManager(context, repository, CoroutineScope(Dispatchers.Unconfined))
         runBlocking {

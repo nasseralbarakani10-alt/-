@@ -9,18 +9,18 @@ import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
     primary = BluePrimary,
-    onPrimary = Color.White,
+    onPrimary = Color(0xFF000000),
     primaryContainer = BlueLight,
-    onPrimaryContainer = BlueDark,
+    onPrimaryContainer = Color(0xFF000000),
     secondary = BlueDark,
-    onSecondary = Color.White,
+    onSecondary = Color(0xFF000000),
     background = BackgroundLight,
     onBackground = InputTextPrimary,
     surface = SurfaceLight,
     onSurface = InputTextPrimary,
-    onSurfaceVariant = LabelUnfocused, // dark gray (#616161), never light gray
-    outline = BorderUnfocused,         // visible gray (#9E9E9E), never faded
-    outlineVariant = Color(0xFFBDBDBD)
+    onSurfaceVariant = Color(0xFF1A1A1A),
+    outline = BorderUnfocused,
+    outlineVariant = Color(0xFFCFD8DC)
 )
 
 private val DarkColorScheme = darkColorScheme(

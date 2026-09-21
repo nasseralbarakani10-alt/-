@@ -79,7 +79,7 @@ fun ReportHeader(
 ) {
     Surface(
         color = BluePrimary,
-        shadowElevation = 4.dp,
+        shadowElevation = 3.dp,
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
@@ -97,7 +97,7 @@ fun ReportHeader(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "الرجوع لقائمة التقارير",
-                    tint = Color.White
+                    tint = Color(0xFF000000)
                 )
             }
 
@@ -105,7 +105,7 @@ fun ReportHeader(
 
             Text(
                 text = title,
-                color = Color.White,
+                color = Color(0xFF000000),
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
@@ -345,7 +345,7 @@ fun ReportSummarySection(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "تفصيل حسب النوع:",
+                    text = "تفصيل حسب نوع التفصيل:",
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF475569),
@@ -436,8 +436,9 @@ fun ReportOrderRowItem(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "(#${order.customerNumber})",
-                        fontSize = 11.5.sp,
-                        color = Color(0xFF475569)
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF000000)
                     )
                 }
 
@@ -449,7 +450,7 @@ fun ReportOrderRowItem(
                 ) {
                     Text(
                         text = categoryName,
-                        color = BlueDark,
+                        color = Color(0xFF000000),
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -472,24 +473,27 @@ fun ReportOrderRowItem(
                     if (order.phoneNumber.isNotBlank()) {
                         Text(
                             text = "هاتف: ${order.phoneNumber}",
-                            fontSize = 11.sp,
-                            color = Color(0xFF1E293B)
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF000000)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                     }
                     if (order.fabricType.isNotBlank()) {
                         Text(
                             text = "القماش: ${order.fabricType}",
-                            fontSize = 11.sp,
-                            color = Color(0xFF1E293B)
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF000000)
                         )
                     }
                 }
 
                 Text(
                     text = formattedTime,
-                    fontSize = 10.5.sp,
-                    color = Color(0xFF64748B)
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF000000)
                 )
             }
 
@@ -504,14 +508,16 @@ fun ReportOrderRowItem(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "القصاص: $cutterName",
-                        fontSize = 11.sp,
-                        color = Color(0xFF334155)
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF000000)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "الخياط: $tailorName",
-                        fontSize = 11.sp,
-                        color = Color(0xFF334155)
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF000000)
                     )
                 }
 

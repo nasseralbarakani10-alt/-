@@ -25,7 +25,10 @@ class TailoringApp : Application() {
             userDao = database.userDao(),
             userPermissionsDao = database.userPermissionsDao(),
             cutterReportExpenseDao = database.cutterReportExpenseDao(),
-            tailorReportExpenseDao = database.tailorReportExpenseDao()
+            tailorReportExpenseDao = database.tailorReportExpenseDao(),
+            linkedDeviceDao = database.linkedDeviceDao(),
+            messagingSettingsDao = database.messagingSettingsDao(),
+            appSettingsDao = database.appSettingsDao()
         )
     }
 

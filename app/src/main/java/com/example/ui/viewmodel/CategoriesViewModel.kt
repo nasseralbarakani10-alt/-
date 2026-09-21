@@ -6,6 +6,7 @@ import com.example.data.model.Category
 import com.example.data.repository.AppRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -16,20 +17,34 @@ sealed class CategoryOpResult {
 
 class CategoriesViewModel(private val repository: AppRepository) : ViewModel() {
 
-    val allCategories: StateFlow<List<Category>> = repository.allCategories
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val allCategories: StateFlow<List<Category>> = combine(
+        repository.allCategories,
+        repository.appSettings
+    ) { categories, settings ->
+        val sortByFrequency = settings?.sortByFrequencyEnabled ?: true
+        if (sortByFrequency) {
+            // Sort by usageCount descending; tiebreaker is original sortOrder
+            categories.sortedWith(
+                compareByDescending<Category> { it.usageCount }
+                    .thenBy { it.sortOrder }
+            )
+        } else {
+            // Default sort: by sortOrder ascending
+            categories.sortedBy { it.sortOrder }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun addCategory(name: String, onResult: (CategoryOpResult) -> Unit = {}) {
         val trimmed = name.trim()
         if (trimmed.isBlank()) {
-            onResult(CategoryOpResult.Error("يرجى إدخال اسم النوع"))
+            onResult(CategoryOpResult.Error("يرجى إدخال اسم نوع التفصيل"))
             return
         }
 
         // Check if a category with this exact name already exists (case-insensitive & trimmed)
         val existsInMemory = allCategories.value.any { it.name.trim().equals(trimmed, ignoreCase = true) }
         if (existsInMemory) {
-            onResult(CategoryOpResult.Error("هذا النوع موجود بالفعل"))
+            onResult(CategoryOpResult.Error("نوع التفصيل هذا موجود بالفعل"))
             return
         }
 
@@ -37,7 +52,7 @@ class CategoriesViewModel(private val repository: AppRepository) : ViewModel() {
             // Also check DB query just in case
             val existingInDb = repository.getCategoryByName(trimmed)
             if (existingInDb != null) {
-                onResult(CategoryOpResult.Error("هذا النوع موجود بالفعل"))
+                onResult(CategoryOpResult.Error("نوع التفصيل هذا موجود بالفعل"))
                 return@launch
             }
 
@@ -53,10 +68,10 @@ class CategoriesViewModel(private val repository: AppRepository) : ViewModel() {
                         isDefault = false
                     )
                 )
-                onResult(CategoryOpResult.Success("تم إضافة النوع بنجاح"))
+                onResult(CategoryOpResult.Success("تم إضافة نوع التفصيل بنجاح"))
             } catch (e: Exception) {
                 // Rely on Room UNIQUE constraint as final safety net
-                onResult(CategoryOpResult.Error("هذا النوع موجود بالفعل"))
+                onResult(CategoryOpResult.Error("نوع التفصيل هذا موجود بالفعل"))
             }
         }
     }
@@ -64,34 +79,34 @@ class CategoriesViewModel(private val repository: AppRepository) : ViewModel() {
     fun updateCategory(category: Category, newName: String, onResult: (CategoryOpResult) -> Unit = {}) {
         val trimmed = newName.trim()
         if (trimmed.isBlank()) {
-            onResult(CategoryOpResult.Error("يرجى إدخال اسم النوع"))
+            onResult(CategoryOpResult.Error("يرجى إدخال اسم نوع التفصيل"))
             return
         }
 
         if (trimmed == category.name.trim()) {
-            onResult(CategoryOpResult.Success("تم تحديث النوع"))
+            onResult(CategoryOpResult.Success("تم تحديث نوع التفصيل"))
             return
         }
 
         // Check if duplicate name exists on other categories
         val exists = allCategories.value.any { it.id != category.id && it.name.trim().equals(trimmed, ignoreCase = true) }
         if (exists) {
-            onResult(CategoryOpResult.Error("هذا النوع موجود بالفعل"))
+            onResult(CategoryOpResult.Error("نوع التفصيل هذا موجود بالفعل"))
             return
         }
 
         viewModelScope.launch {
             val existingInDb = repository.getCategoryByName(trimmed)
             if (existingInDb != null && existingInDb.id != category.id) {
-                onResult(CategoryOpResult.Error("هذا النوع موجود بالفعل"))
+                onResult(CategoryOpResult.Error("نوع التفصيل هذا موجود بالفعل"))
                 return@launch
             }
 
             try {
                 repository.updateCategory(category.copy(name = trimmed))
-                onResult(CategoryOpResult.Success("تم تعديل اسم النوع بنجاح"))
+                onResult(CategoryOpResult.Success("تم تعديل اسم نوع التفصيل بنجاح"))
             } catch (e: Exception) {
-                onResult(CategoryOpResult.Error("هذا النوع موجود بالفعل"))
+                onResult(CategoryOpResult.Error("نوع التفصيل هذا موجود بالفعل"))
             }
         }
     }
@@ -99,12 +114,12 @@ class CategoriesViewModel(private val repository: AppRepository) : ViewModel() {
     suspend fun canDeleteCategory(category: Category): Pair<Boolean, String?> {
         // Do not allow deleting any of the 15 default seeded categories at all
         if (category.isDefault || category.sortOrder in 1..15) {
-            return Pair(false, "لا يمكن حذف الأنواع الافتراضية")
+            return Pair(false, "لا يمكن حذف أنواع التفصيل الافتراضية")
         }
 
         val orderCount = repository.getOrderCountForCategory(category.id)
         if (orderCount > 0) {
-            return Pair(false, "لا يمكن حذف هذا النوع لوجود معاملات سابقة مرتبطة به")
+            return Pair(false, "لا يمكن حذف نوع التفصيل هذا لوجود معاملات سابقة مرتبطة به")
         }
 
         return Pair(true, null)
@@ -114,15 +129,15 @@ class CategoriesViewModel(private val repository: AppRepository) : ViewModel() {
         viewModelScope.launch {
             val (canDelete, reason) = canDeleteCategory(category)
             if (!canDelete) {
-                onResult(CategoryOpResult.Error(reason ?: "لا يمكن حذف هذا النوع"))
+                onResult(CategoryOpResult.Error(reason ?: "لا يمكن حذف نوع التفصيل هذا"))
                 return@launch
             }
 
             try {
                 repository.deleteCategory(category)
-                onResult(CategoryOpResult.Success("تم حذف النوع بنجاح"))
+                onResult(CategoryOpResult.Success("تم حذف نوع التفصيل بنجاح"))
             } catch (e: Exception) {
-                onResult(CategoryOpResult.Error("تعذر حذف النوع: ${e.message}"))
+                onResult(CategoryOpResult.Error("تعذر حذف نوع التفصيل: ${e.message}"))
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.example.ui.screens.reports
 
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -25,6 +26,9 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -44,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -66,7 +71,8 @@ import java.util.Locale
 data class WorkerOption(
     val id: Long,
     val name: String,
-    val isActive: Boolean
+    val isActive: Boolean,
+    val phoneNumber: String = ""
 )
 
 data class WorkerCategorySummary(
@@ -90,7 +96,9 @@ fun WorkerReportScreen(
 ) {
     BackHandler(onBack = onBackClick)
 
+    val context = LocalContext.current
     val decimalFormat = remember { DecimalFormat("#,##0.##") }
+    val reportDateFormatter = remember { SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()) }
     val categories by categoriesViewModel.allCategories.collectAsStateWithLifecycle()
 
     val initialStartCalendar = remember {
@@ -114,6 +122,9 @@ fun WorkerReportScreen(
     var queryWorkerId by remember { mutableStateOf<Long?>(null) }
     var queryCategoryId by remember { mutableStateOf<Long?>(null) }
     var hasExecutedReport by remember { mutableStateOf(false) }
+
+    // Inline share error message
+    var shareErrorMessage by remember { mutableStateOf<String?>(null) }
 
     // Manual expense input
     var expenseInputText by remember { mutableStateOf("") }
@@ -287,6 +298,8 @@ fun WorkerReportScreen(
                                         },
                                         onClick = {
                                             selectedWorkerId = worker.id
+                                            hasExecutedReport = false
+                                            shareErrorMessage = null
                                             showWorkerMenu = false
                                         }
                                     )
@@ -298,20 +311,28 @@ fun WorkerReportScreen(
                         ReportDateField(
                             label = "تاريخ البداية:",
                             calendar = selectedStartCalendar,
-                            onDateChanged = { selectedStartCalendar = it }
+                            onDateChanged = {
+                                selectedStartCalendar = it
+                                hasExecutedReport = false
+                                shareErrorMessage = null
+                            }
                         )
 
                         ReportDateField(
                             label = "تاريخ النهاية:",
                             calendar = selectedEndCalendar,
-                            onDateChanged = { selectedEndCalendar = it }
+                            onDateChanged = {
+                                selectedEndCalendar = it
+                                hasExecutedReport = false
+                                shareErrorMessage = null
+                            }
                         )
 
                         // Optional Category Filter
                         Box(modifier = Modifier.fillMaxWidth()) {
                             Column {
                                 Text(
-                                    text = "اختيار النوع (اختياري):",
+                                    text = "اختيار نوع التفصيل (اختياري):",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF1E293B),
@@ -331,7 +352,7 @@ fun WorkerReportScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = categories.find { it.id == selectedCategoryId }?.name ?: "الكل (جميع الأنواع)",
+                                            text = categories.find { it.id == selectedCategoryId }?.name ?: "الكل (جميع أنواع التفصيل)",
                                             fontSize = 14.sp,
                                             color = Color(0xFF0F172A),
                                             fontWeight = FontWeight.Medium,
@@ -354,6 +375,8 @@ fun WorkerReportScreen(
                                     text = { Text("الكل (جميع الأنواع)") },
                                     onClick = {
                                         selectedCategoryId = null
+                                        hasExecutedReport = false
+                                        shareErrorMessage = null
                                         showCategoryMenu = false
                                     }
                                 )
@@ -362,6 +385,8 @@ fun WorkerReportScreen(
                                         text = { Text(cat.name) },
                                         onClick = {
                                             selectedCategoryId = cat.id
+                                            hasExecutedReport = false
+                                            shareErrorMessage = null
                                             showCategoryMenu = false
                                         }
                                     )
@@ -406,6 +431,7 @@ fun WorkerReportScreen(
                                     queryWorkerId = selectedWorkerId
                                     queryCategoryId = selectedCategoryId
                                     hasExecutedReport = true
+                                    shareErrorMessage = null
                                 }
                             },
                             enabled = isDateRangeValid && selectedWorkerId != null
@@ -415,7 +441,14 @@ fun WorkerReportScreen(
             }
 
             // Results Section
-            if (queryWorkerId == null && !hasExecutedReport) {
+            val isReportGeneratedAndCurrent = hasExecutedReport &&
+                queryWorkerId != null &&
+                selectedWorkerId == queryWorkerId &&
+                getStartOfDay(selectedStartCalendar) == queryStartMillis &&
+                getEndOfDay(selectedEndCalendar) == queryEndMillis &&
+                selectedCategoryId == queryCategoryId
+
+            if (!isReportGeneratedAndCurrent) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -663,6 +696,94 @@ fun WorkerReportScreen(
                                     )
                                 }
                             }
+
+                            // Share Report Button below Net Balance result
+                            Button(
+                                onClick = {
+                                    val currentWorker = workers.find { it.id == queryWorkerId }
+                                    if (currentWorker == null || currentWorker.phoneNumber.trim().isEmpty()) {
+                                        shareErrorMessage = "لا يوجد رقم هاتف محفوظ لهذا الشخص"
+                                    } else {
+                                        shareErrorMessage = null
+                                        val phone = currentWorker.phoneNumber.trim()
+                                        val summaryText = buildWorkerReportSummaryText(
+                                            workerLabel = workerLabel,
+                                            workerName = currentWorker.name,
+                                            startDateStr = reportDateFormatter.format(Date(queryStartMillis)),
+                                            endDateStr = reportDateFormatter.format(Date(queryEndMillis)),
+                                            totalOrdersCount = orders.size,
+                                            categorySummaries = categorySummaries,
+                                            grandTotalDue = grandTotalDue,
+                                            expensesAmount = currentExpenseAmount,
+                                            netBalance = netBalance,
+                                            decimalFormat = decimalFormat
+                                        )
+                                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, summaryText)
+                                            putExtra(Intent.EXTRA_SUBJECT, "تقرير حساب $workerLabel - ${currentWorker.name}")
+                                            putExtra("address", phone)
+                                            putExtra(Intent.EXTRA_PHONE_NUMBER, phone)
+                                        }
+                                        try {
+                                            val chooser = Intent.createChooser(sendIntent, "إرسال التقرير")
+                                            context.startActivity(chooser)
+                                        } catch (e: Exception) {
+                                            shareErrorMessage = "تعذر فتح نافذة المشاركة"
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .testTag("share_report_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "إرسال التقرير",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+
+                            if (shareErrorMessage != null) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFFFEF2F2),
+                                    border = BorderStroke(1.dp, Color(0xFFFCA5A5)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("share_error_message")
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ErrorOutline,
+                                            contentDescription = null,
+                                            tint = Color(0xFFDC2626),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = shareErrorMessage ?: "",
+                                            color = Color(0xFFB91C1C),
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -839,3 +960,40 @@ fun WorkerReportOrderRow(
         }
     }
 }
+
+private fun buildWorkerReportSummaryText(
+    workerLabel: String,
+    workerName: String,
+    startDateStr: String,
+    endDateStr: String,
+    totalOrdersCount: Int,
+    categorySummaries: List<WorkerCategorySummary>,
+    grandTotalDue: Double,
+    expensesAmount: Double,
+    netBalance: Double,
+    decimalFormat: DecimalFormat
+): String {
+    val balanceStatus = if (netBalance >= 0.0) "له" else "عليه"
+    val netFormatted = decimalFormat.format(kotlin.math.abs(netBalance))
+    val grandDueFormatted = decimalFormat.format(grandTotalDue)
+    val expensesFormatted = decimalFormat.format(expensesAmount)
+
+    val sb = StringBuilder()
+    sb.append("تقرير حساب $workerLabel: $workerName\n")
+    sb.append("الفترة: من $startDateStr إلى $endDateStr\n")
+    sb.append("إجمالي العمليات: $totalOrdersCount\n")
+    sb.append("\nتفاصيل العمليات حسب نوع التفصيل:\n")
+    if (categorySummaries.isEmpty()) {
+        sb.append("- لا توجد عمليات مسجلة\n")
+    } else {
+        categorySummaries.forEach { cat ->
+            sb.append("- ${cat.categoryName}: ${cat.count} ثوب - ${decimalFormat.format(cat.totalDue)} ر.س\n")
+        }
+    }
+    sb.append("\nإجمالي المستحق له: $grandDueFormatted ر.س\n")
+    sb.append("إجمالي المصروفات: $expensesFormatted ر.س\n")
+    sb.append("الصافي ($balanceStatus): $netFormatted ر.س")
+
+    return sb.toString()
+}
+

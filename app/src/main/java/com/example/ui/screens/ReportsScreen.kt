@@ -89,6 +89,15 @@ fun ReportsScreen(
     val isAdmin = currentUser?.isAdmin == true
     val canAccessReports = isAdmin || (permissions?.canAccessReports == true)
 
+    val canAccessRecent = isAdmin || (permissions?.canAccessReportsRecent == true || (permissions == null && currentUser?.canAccessReportsRecent == true))
+    val canAccessStatement = isAdmin || (permissions?.canAccessReportsStatement == true || (permissions == null && currentUser?.canAccessReportsStatement == true))
+    val canAccessCustomSearch = isAdmin || (permissions?.canAccessReportsCustomSearch == true || (permissions == null && currentUser?.canAccessReportsCustomSearch == true))
+    val canAccessDaily = isAdmin || (permissions?.canAccessReportsDaily == true || (permissions == null && currentUser?.canAccessReportsDaily == true))
+    val canAccessMonthly = isAdmin || (permissions?.canAccessReportsMonthly == true || (permissions == null && currentUser?.canAccessReportsMonthly == true))
+    val canAccessYearly = isAdmin || (permissions?.canAccessReportsYearly == true || (permissions == null && currentUser?.canAccessReportsYearly == true))
+    val canAccessCutter = isAdmin || (permissions?.canAccessCutterReports == true || (permissions == null && currentUser?.canAccessCutterReports == true))
+    val canAccessTailor = isAdmin || (permissions?.canAccessTailorReports == true || (permissions == null && currentUser?.canAccessTailorReports == true))
+
     var activeReport by remember { mutableStateOf<ActiveReportScreen?>(null) }
 
     val allCutters by cuttersViewModel.allCutters.collectAsState()
@@ -96,96 +105,131 @@ fun ReportsScreen(
 
     when (activeReport) {
         ActiveReportScreen.CUTTER_REPORTS -> {
-            WorkerReportScreen(
-                title = "تقارير القصاصين",
-                workerLabel = "القصاص",
-                workers = allCutters.map { WorkerOption(it.id, it.name, it.isActive) },
-                isCutter = true,
-                ordersViewModel = ordersViewModel,
-                categoriesViewModel = categoriesViewModel,
-                onFetchSavedExpense = { wId, start, end ->
-                    cuttersViewModel.getExpenseDirect(wId, start, end)
-                },
-                onSaveExpense = { wId, start, end, amt ->
-                    cuttersViewModel.saveExpense(wId, start, end, amt)
-                },
-                onBackClick = { activeReport = null }
-            )
-            return
+            if (!canAccessReports || !canAccessCutter) {
+                activeReport = null
+            } else {
+                WorkerReportScreen(
+                    title = "تقارير القصاصين",
+                    workerLabel = "القصاص",
+                    workers = allCutters.map { WorkerOption(it.id, it.name, it.isActive, it.phoneNumber) },
+                    isCutter = true,
+                    ordersViewModel = ordersViewModel,
+                    categoriesViewModel = categoriesViewModel,
+                    onFetchSavedExpense = { wId, start, end ->
+                        cuttersViewModel.getExpenseDirect(wId, start, end)
+                    },
+                    onSaveExpense = { wId, start, end, amt ->
+                        cuttersViewModel.saveExpense(wId, start, end, amt)
+                    },
+                    onBackClick = { activeReport = null }
+                )
+                return
+            }
         }
         ActiveReportScreen.TAILOR_REPORTS -> {
-            WorkerReportScreen(
-                title = "تقارير الخياطين",
-                workerLabel = "الخياط",
-                workers = allTailors.map { WorkerOption(it.id, it.name, it.isActive) },
-                isCutter = false,
-                ordersViewModel = ordersViewModel,
-                categoriesViewModel = categoriesViewModel,
-                onFetchSavedExpense = { wId, start, end ->
-                    tailorsViewModel.getExpenseDirect(wId, start, end)
-                },
-                onSaveExpense = { wId, start, end, amt ->
-                    tailorsViewModel.saveExpense(wId, start, end, amt)
-                },
-                onBackClick = { activeReport = null }
-            )
-            return
+            if (!canAccessReports || !canAccessTailor) {
+                activeReport = null
+            } else {
+                WorkerReportScreen(
+                    title = "تقارير الخياطين",
+                    workerLabel = "الخياط",
+                    workers = allTailors.map { WorkerOption(it.id, it.name, it.isActive, it.phoneNumber) },
+                    isCutter = false,
+                    ordersViewModel = ordersViewModel,
+                    categoriesViewModel = categoriesViewModel,
+                    onFetchSavedExpense = { wId, start, end ->
+                        tailorsViewModel.getExpenseDirect(wId, start, end)
+                    },
+                    onSaveExpense = { wId, start, end, amt ->
+                        tailorsViewModel.saveExpense(wId, start, end, amt)
+                    },
+                    onBackClick = { activeReport = null }
+                )
+                return
+            }
         }
         ActiveReportScreen.DAILY -> {
-            DailyReportScreen(
-                ordersViewModel = ordersViewModel,
-                onBackClick = { activeReport = null }
-            )
-            return
+            if (!canAccessReports || !canAccessDaily) {
+                activeReport = null
+            } else {
+                DailyReportScreen(
+                    ordersViewModel = ordersViewModel,
+                    onBackClick = { activeReport = null }
+                )
+                return
+            }
         }
         ActiveReportScreen.MONTHLY -> {
-            DateRangeReportScreen(
-                title = "كشف حساب شهري",
-                isYearly = false,
-                ordersViewModel = ordersViewModel,
-                onBackClick = { activeReport = null }
-            )
-            return
+            if (!canAccessReports || !canAccessMonthly) {
+                activeReport = null
+            } else {
+                DateRangeReportScreen(
+                    title = "كشف حساب شهري",
+                    isYearly = false,
+                    ordersViewModel = ordersViewModel,
+                    onBackClick = { activeReport = null }
+                )
+                return
+            }
         }
         ActiveReportScreen.YEARLY -> {
-            DateRangeReportScreen(
-                title = "كشف حساب سنوي",
-                isYearly = true,
-                ordersViewModel = ordersViewModel,
-                onBackClick = { activeReport = null }
-            )
-            return
+            if (!canAccessReports || !canAccessYearly) {
+                activeReport = null
+            } else {
+                DateRangeReportScreen(
+                    title = "كشف حساب سنوي",
+                    isYearly = true,
+                    ordersViewModel = ordersViewModel,
+                    onBackClick = { activeReport = null }
+                )
+                return
+            }
         }
         ActiveReportScreen.RECENT -> {
-            RecentOrdersReportScreen(
-                ordersViewModel = ordersViewModel,
-                onBackClick = { activeReport = null }
-            )
-            return
+            if (!canAccessReports || !canAccessRecent) {
+                activeReport = null
+            } else {
+                RecentOrdersReportScreen(
+                    ordersViewModel = ordersViewModel,
+                    onBackClick = { activeReport = null }
+                )
+                return
+            }
         }
         ActiveReportScreen.ACCOUNT_STATEMENT -> {
-            AccountStatementReportScreen(
-                ordersViewModel = ordersViewModel,
-                cuttersViewModel = cuttersViewModel,
-                tailorsViewModel = tailorsViewModel,
-                onBackClick = { activeReport = null }
-            )
-            return
+            if (!canAccessReports || !canAccessStatement) {
+                activeReport = null
+            } else {
+                AccountStatementReportScreen(
+                    ordersViewModel = ordersViewModel,
+                    cuttersViewModel = cuttersViewModel,
+                    tailorsViewModel = tailorsViewModel,
+                    onBackClick = { activeReport = null }
+                )
+                return
+            }
         }
         ActiveReportScreen.CUSTOM_SEARCH -> {
-            CustomSearchReportScreen(
-                ordersViewModel = ordersViewModel,
-                categoriesViewModel = categoriesViewModel,
-                cuttersViewModel = cuttersViewModel,
-                tailorsViewModel = tailorsViewModel,
-                onBackClick = { activeReport = null }
-            )
-            return
+            if (!canAccessReports || !canAccessCustomSearch) {
+                activeReport = null
+            } else {
+                CustomSearchReportScreen(
+                    ordersViewModel = ordersViewModel,
+                    categoriesViewModel = categoriesViewModel,
+                    cuttersViewModel = cuttersViewModel,
+                    tailorsViewModel = tailorsViewModel,
+                    onBackClick = { activeReport = null }
+                )
+                return
+            }
         }
         null -> {
             // Main Reports List
         }
     }
+
+    val hasAnyReportPermission = canAccessRecent || canAccessStatement || canAccessCustomSearch ||
+            canAccessDaily || canAccessMonthly || canAccessYearly || canAccessCutter || canAccessTailor
 
     Column(
         modifier = modifier
@@ -195,7 +239,7 @@ fun ReportsScreen(
         // App Bar Header
         Surface(
             color = BluePrimary,
-            shadowElevation = 4.dp,
+            shadowElevation = 3.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -206,7 +250,7 @@ fun ReportsScreen(
             ) {
                 Text(
                     text = "التقارير والإحصائيات",
-                    color = Color.White,
+                    color = Color(0xFF000000),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
@@ -215,7 +259,7 @@ fun ReportsScreen(
             }
         }
 
-        if (!canAccessReports) {
+        if (!canAccessReports || !hasAnyReportPermission) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -250,7 +294,7 @@ fun ReportsScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "يرجى مراجعة مدير النظام لمنحك صلاحية الوصول إلى التقارير والإحصائيات.",
+                        text = "يرجى مراجعة مدير النظام لمنحك صلاحية الوصول إلى أقسام التقارير والإحصائيات.",
                         style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF64748B)),
                         textAlign = TextAlign.Center
                     )
@@ -266,7 +310,7 @@ fun ReportsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (isAdmin || permissions?.canAccessReportsRecent == true) {
+            if (canAccessRecent) {
                 item {
                     ReportCardItem(
                         title = "آخر العمليات",
@@ -275,12 +319,12 @@ fun ReportsScreen(
                         iconTint = Color(0xFF2563EB),
                         iconBg = Color(0xFFEFF6FF),
                         testTag = "report_card_recent",
-                        onClick = { activeReport = ActiveReportScreen.RECENT }
+                        onClick = { if (canAccessRecent) activeReport = ActiveReportScreen.RECENT }
                     )
                 }
             }
 
-            if (isAdmin || permissions?.canAccessReportsStatement == true) {
+            if (canAccessStatement) {
                 item {
                     ReportCardItem(
                         title = "كشف حساب",
@@ -289,12 +333,12 @@ fun ReportsScreen(
                         iconTint = Color(0xFF0D9488),
                         iconBg = Color(0xFFF0FDFA),
                         testTag = "report_card_statement",
-                        onClick = { activeReport = ActiveReportScreen.ACCOUNT_STATEMENT }
+                        onClick = { if (canAccessStatement) activeReport = ActiveReportScreen.ACCOUNT_STATEMENT }
                     )
                 }
             }
 
-            if (isAdmin || permissions?.canAccessReportsCustomSearch == true) {
+            if (canAccessCustomSearch) {
                 item {
                     ReportCardItem(
                         title = "بحث مخصص في التقارير",
@@ -303,12 +347,12 @@ fun ReportsScreen(
                         iconTint = Color(0xFFD97706),
                         iconBg = Color(0xFFFFFBEB),
                         testTag = "report_card_custom_search",
-                        onClick = { activeReport = ActiveReportScreen.CUSTOM_SEARCH }
+                        onClick = { if (canAccessCustomSearch) activeReport = ActiveReportScreen.CUSTOM_SEARCH }
                     )
                 }
             }
 
-            if (isAdmin || permissions?.canAccessReportsDaily == true) {
+            if (canAccessDaily) {
                 item {
                     ReportCardItem(
                         title = "كشف حساب يومي",
@@ -317,12 +361,12 @@ fun ReportsScreen(
                         iconTint = Color(0xFF16A34A),
                         iconBg = Color(0xFFF0FDF4),
                         testTag = "report_card_daily",
-                        onClick = { activeReport = ActiveReportScreen.DAILY }
+                        onClick = { if (canAccessDaily) activeReport = ActiveReportScreen.DAILY }
                     )
                 }
             }
 
-            if (isAdmin || permissions?.canAccessReportsMonthly == true) {
+            if (canAccessMonthly) {
                 item {
                     ReportCardItem(
                         title = "كشف حساب شهري",
@@ -331,12 +375,12 @@ fun ReportsScreen(
                         iconTint = Color(0xFF9333EA),
                         iconBg = Color(0xFFFAF5FF),
                         testTag = "report_card_monthly",
-                        onClick = { activeReport = ActiveReportScreen.MONTHLY }
+                        onClick = { if (canAccessMonthly) activeReport = ActiveReportScreen.MONTHLY }
                     )
                 }
             }
 
-            if (isAdmin || permissions?.canAccessReportsYearly == true) {
+            if (canAccessYearly) {
                 item {
                     ReportCardItem(
                         title = "كشف حساب سنوي",
@@ -345,34 +389,38 @@ fun ReportsScreen(
                         iconTint = Color(0xFFDC2626),
                         iconBg = Color(0xFFFEF2F2),
                         testTag = "report_card_yearly",
-                        onClick = { activeReport = ActiveReportScreen.YEARLY }
+                        onClick = { if (canAccessYearly) activeReport = ActiveReportScreen.YEARLY }
                     )
                 }
             }
 
             // Financial Reports for Cutters & Tailors
-            item {
-                ReportCardItem(
-                    title = "تقارير القصاصين",
-                    subtitle = "كشف حساب تفصيلي لمستحقات القصاص، المصروفات، وصافي الحساب",
-                    icon = Icons.Default.ContentCut,
-                    iconTint = Color(0xFF4F46E5),
-                    iconBg = Color(0xFFEEF2FF),
-                    testTag = "report_card_cutters",
-                    onClick = { activeReport = ActiveReportScreen.CUTTER_REPORTS }
-                )
+            if (canAccessCutter) {
+                item {
+                    ReportCardItem(
+                        title = "تقارير القصاصين",
+                        subtitle = "كشف حساب تفصيلي لمستحقات القصاص، المصروفات، وصافي الحساب",
+                        icon = Icons.Default.ContentCut,
+                        iconTint = Color(0xFF4F46E5),
+                        iconBg = Color(0xFFEEF2FF),
+                        testTag = "report_card_cutters",
+                        onClick = { if (canAccessCutter) activeReport = ActiveReportScreen.CUTTER_REPORTS }
+                    )
+                }
             }
 
-            item {
-                ReportCardItem(
-                    title = "تقارير الخياطين",
-                    subtitle = "كشف حساب تفصيلي لمستحقات الخياط، المصروفات، وصافي الحساب",
-                    icon = Icons.Default.Engineering,
-                    iconTint = Color(0xFF0891B2),
-                    iconBg = Color(0xFFECFEFF),
-                    testTag = "report_card_tailors",
-                    onClick = { activeReport = ActiveReportScreen.TAILOR_REPORTS }
-                )
+            if (canAccessTailor) {
+                item {
+                    ReportCardItem(
+                        title = "تقارير الخياطين",
+                        subtitle = "كشف حساب تفصيلي لمستحقات الخياط، المصروفات، وصافي الحساب",
+                        icon = Icons.Default.Engineering,
+                        iconTint = Color(0xFF0891B2),
+                        iconBg = Color(0xFFECFEFF),
+                        testTag = "report_card_tailors",
+                        onClick = { if (canAccessTailor) activeReport = ActiveReportScreen.TAILOR_REPORTS }
+                    )
+                }
             }
         }
     }
@@ -431,16 +479,17 @@ private fun ReportCardItem(
                         text = title,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
+                            fontSize = 15.sp
                         ),
-                        color = Color(0xFF0F172A)
+                        color = Color(0xFF000000)
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 12.5.sp,
-                            color = Color(0xFF64748B)
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF000000)
                         )
                     )
                 }
@@ -449,7 +498,7 @@ private fun ReportCardItem(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = null,
-                tint = Color(0xFF94A3B8),
+                tint = Color(0xFF000000),
                 modifier = Modifier.size(16.dp)
             )
         }

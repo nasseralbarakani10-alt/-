@@ -15,5 +15,6 @@ data class Category(
     val id: Long = 0,
     val name: String,
     val sortOrder: Int = 0,
-    val isDefault: Boolean = false
+    val isDefault: Boolean = false,
+    val usageCount: Int = 0
 )

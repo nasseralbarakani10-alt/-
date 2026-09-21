@@ -1,19 +1,25 @@
 package com.example.data.repository
 
+import com.example.data.dao.AppSettingsDao
 import com.example.data.dao.CategoryDao
 import com.example.data.dao.CutterDao
 import com.example.data.dao.CutterPriceDao
 import com.example.data.dao.CutterReportExpenseDao
+import com.example.data.dao.LinkedDeviceDao
+import com.example.data.dao.MessagingSettingsDao
 import com.example.data.dao.OrderDao
 import com.example.data.dao.TailorDao
 import com.example.data.dao.TailorPriceDao
 import com.example.data.dao.TailorReportExpenseDao
 import com.example.data.dao.UserDao
 import com.example.data.dao.UserPermissionsDao
+import com.example.data.model.AppSettings
 import com.example.data.model.Category
 import com.example.data.model.Cutter
 import com.example.data.model.CutterPrice
 import com.example.data.model.CutterReportExpense
+import com.example.data.model.LinkedDevice
+import com.example.data.model.MessagingSettings
 import com.example.data.model.Order
 import com.example.data.model.OrderWithCategory
 import com.example.data.model.Tailor
@@ -34,7 +40,10 @@ class AppRepository(
     private val userDao: UserDao,
     private val userPermissionsDao: UserPermissionsDao,
     private val cutterReportExpenseDao: CutterReportExpenseDao,
-    private val tailorReportExpenseDao: TailorReportExpenseDao
+    private val tailorReportExpenseDao: TailorReportExpenseDao,
+    private val linkedDeviceDao: LinkedDeviceDao? = null,
+    private val messagingSettingsDao: MessagingSettingsDao? = null,
+    private val appSettingsDao: AppSettingsDao? = null
 ) {
     // Orders
     val allOrders: Flow<List<Order>> = orderDao.getAllOrders()
@@ -229,6 +238,8 @@ class AppRepository(
 
     suspend fun updateCategory(category: Category) = categoryDao.update(category)
 
+    suspend fun incrementCategoryUsageCount(id: Long) = categoryDao.incrementUsageCount(id)
+
     suspend fun deleteCategory(category: Category) = categoryDao.delete(category)
 
     // Cutters
@@ -241,6 +252,8 @@ class AppRepository(
 
     suspend fun updateCutter(cutter: Cutter) = cutterDao.update(cutter)
 
+    suspend fun incrementCutterUsageCount(id: Long) = cutterDao.incrementUsageCount(id)
+
     suspend fun deleteCutter(cutter: Cutter) = cutterDao.delete(cutter)
 
     // Tailors
@@ -252,6 +265,8 @@ class AppRepository(
     suspend fun insertTailor(tailor: Tailor): Long = tailorDao.insert(tailor)
 
     suspend fun updateTailor(tailor: Tailor) = tailorDao.update(tailor)
+
+    suspend fun incrementTailorUsageCount(id: Long) = tailorDao.incrementUsageCount(id)
 
     suspend fun deleteTailor(tailor: Tailor) = tailorDao.delete(tailor)
 
@@ -341,5 +356,54 @@ class AppRepository(
                 expenseAmount = amount
             )
         tailorReportExpenseDao.upsertExpense(expense)
+    }
+
+    // Linked Devices
+    val allLinkedDevices: Flow<List<LinkedDevice>> =
+        linkedDeviceDao?.getAllLinkedDevices() ?: kotlinx.coroutines.flow.flowOf(emptyList())
+
+    suspend fun getDeviceByDeviceId(deviceId: String): LinkedDevice? =
+        linkedDeviceDao?.getDeviceByDeviceId(deviceId)
+
+    suspend fun getDeviceById(id: Long): LinkedDevice? =
+        linkedDeviceDao?.getDeviceById(id)
+
+    suspend fun insertLinkedDevice(device: LinkedDevice): Long =
+        linkedDeviceDao?.insert(device) ?: -1L
+
+    suspend fun updateLinkedDevice(device: LinkedDevice) {
+        linkedDeviceDao?.update(device)
+    }
+
+    suspend fun deleteLinkedDevice(device: LinkedDevice) {
+        linkedDeviceDao?.delete(device)
+    }
+
+    suspend fun deleteLinkedDeviceById(id: Long) {
+        linkedDeviceDao?.deleteById(id)
+    }
+
+    // Messaging Settings
+    val messagingSettings: Flow<MessagingSettings?> =
+        messagingSettingsDao?.getSettingsFlow() ?: kotlinx.coroutines.flow.flowOf(MessagingSettings())
+
+    suspend fun getMessagingSettingsDirect(): MessagingSettings {
+        return messagingSettingsDao?.getSettings() ?: MessagingSettings()
+    }
+
+    suspend fun saveMessagingSettings(settings: MessagingSettings) {
+        messagingSettingsDao?.saveSettings(settings)
+    }
+
+    // App Settings
+    val appSettings: Flow<AppSettings?> =
+        appSettingsDao?.getSettingsFlow() ?: kotlinx.coroutines.flow.flowOf(AppSettings())
+
+    suspend fun getAppSettingsDirect(): AppSettings {
+        return appSettingsDao?.getSettings() ?: AppSettings()
+    }
+
+    suspend fun saveAppSettings(settings: AppSettings) {
+        appSettingsDao?.saveSettings(settings)
     }
 }
