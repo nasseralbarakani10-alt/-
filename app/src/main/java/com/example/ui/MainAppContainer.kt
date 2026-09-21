@@ -186,7 +186,8 @@ fun MainAppContainer(
                         categoriesViewModel = categoriesViewModel,
                         cuttersViewModel = cuttersViewModel,
                         tailorsViewModel = tailorsViewModel,
-                        messagingViewModel = messagingViewModel
+                        messagingViewModel = messagingViewModel,
+                        settingsViewModel = settingsViewModel
                     )
                 }
                 composable(NavRoutes.REPORTS) {

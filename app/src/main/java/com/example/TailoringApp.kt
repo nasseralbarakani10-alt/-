@@ -2,6 +2,7 @@ package com.example
 
 import android.app.Application
 import com.example.data.database.AppDatabase
+import com.example.data.preferences.MessagingPreferencesManager
 import com.example.data.repository.AppRepository
 import com.example.data.session.SessionManager
 import kotlinx.coroutines.CoroutineScope
@@ -12,6 +13,10 @@ class TailoringApp : Application() {
 
     val database: AppDatabase by lazy {
         AppDatabase.getDatabase(this)
+    }
+
+    val messagingPreferencesManager: MessagingPreferencesManager by lazy {
+        MessagingPreferencesManager(this)
     }
 
     val repository: AppRepository by lazy {
@@ -28,7 +33,9 @@ class TailoringApp : Application() {
             tailorReportExpenseDao = database.tailorReportExpenseDao(),
             linkedDeviceDao = database.linkedDeviceDao(),
             messagingSettingsDao = database.messagingSettingsDao(),
-            appSettingsDao = database.appSettingsDao()
+            appSettingsDao = database.appSettingsDao(),
+            customerDao = database.customerDao(),
+            messagingPreferencesManager = messagingPreferencesManager
         )
     }
 

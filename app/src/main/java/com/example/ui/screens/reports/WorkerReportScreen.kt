@@ -821,6 +821,9 @@ fun WorkerReportOrderRow(
     modifier: Modifier = Modifier
 ) {
     val order = orderWithCategory.order
+    val customerName = orderWithCategory.customerName
+    val customerNumber = orderWithCategory.customerNumber
+    val phoneNumber = orderWithCategory.phoneNumber
     val categoryName = orderWithCategory.category?.name ?: "غير محدد"
     val price = if (isCutter) order.cutterPrice else order.tailorPrice
     val decimalFormat = remember { DecimalFormat("#,##0.##") }
@@ -851,7 +854,7 @@ fun WorkerReportOrderRow(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = order.customerName,
+                        text = customerName,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.5.sp,
@@ -861,7 +864,7 @@ fun WorkerReportOrderRow(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "(#${order.customerNumber})",
+                        text = "(#$customerNumber)",
                         fontSize = 11.5.sp,
                         color = Color(0xFF475569)
                     )
@@ -894,9 +897,9 @@ fun WorkerReportOrderRow(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    if (order.phoneNumber.isNotBlank()) {
+                    if (phoneNumber.isNotBlank()) {
                         Text(
-                            text = "هاتف: ${order.phoneNumber}",
+                            text = "هاتف: $phoneNumber",
                             fontSize = 11.sp,
                             color = Color(0xFF1E293B)
                         )

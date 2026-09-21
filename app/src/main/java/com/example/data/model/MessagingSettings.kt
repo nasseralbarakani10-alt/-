@@ -10,7 +10,10 @@ data class MessagingSettings(
     val messageType: String = MESSAGE_TYPE_SMS,
     val delaySeconds: Int = 15,
     val autoSendEnabled: Boolean = true,
-    val readyMessageTemplate: String = DEFAULT_TEMPLATE
+    val readyMessageTemplate: String = DEFAULT_TEMPLATE,
+    val shopPhoneNumber: String = "",
+    val stopShopMessaging: Boolean = false,
+    val stopCustomerMessagingOnReady: Boolean = false
 ) {
     companion object {
         const val MESSAGE_TYPE_SMS = "SMS"

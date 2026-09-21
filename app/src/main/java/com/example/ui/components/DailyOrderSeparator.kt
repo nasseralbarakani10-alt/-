@@ -4,19 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -26,20 +19,38 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.OrderWithCategory
 
 @Composable
 fun DailyOrderSeparator(
     dayName: String,
     fullDate: String,
-    orderCount: Int,
+    orders: List<OrderWithCategory>,
     modifier: Modifier = Modifier
 ) {
+    // Calculate live category breakdown for this day only
+    val categoryCounts = remember(orders) {
+        val counts = linkedMapOf<String, Int>()
+        orders.forEach { item ->
+            val catName = item.category?.name ?: "غير محدد"
+            counts[catName] = (counts[catName] ?: 0) + 1
+        }
+        counts.filter { it.value > 0 }
+    }
+
+    val breakdownText = remember(categoryCounts) {
+        if (categoryCounts.isEmpty()) ""
+        else categoryCounts.entries.joinToString(separator = "   ") { (cat, count) ->
+            "$cat $count"
+        }
+    }
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .testTag("daily_separator_${dayName}_$fullDate"),
         shape = RectangleShape,
-        shadowElevation = 1.dp,
+        shadowElevation = 0.5.dp,
         color = Color.Transparent
     ) {
         Column(
@@ -48,82 +59,46 @@ fun DailyOrderSeparator(
                 .background(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
-                            Color(0xFF0288D1), // Deep sky-blue
-                            Color(0xFF29B6F6), // Light cyan-blue (sky-blue)
+                            Color(0xFF0288D1),
+                            Color(0xFF29B6F6),
                             Color(0xFF0288D1)
                         )
                     )
                 )
-                .padding(horizontal = 10.dp, vertical = 3.dp)
+                .padding(horizontal = 8.dp, vertical = 2.5.dp),
+            verticalArrangement = Arrangement.Center
         ) {
-            // Line 1: App title & Day orders count badge
+            // Line 1: Compact shortened label "كشف متابعة العمل  {day name}  {date}"
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f, fill = false)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Description,
-                        contentDescription = null,
-                        tint = Color(0xFF000000),
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "كشف متابعة العمل لمحلات ترند للخياطة الرجالية",
-                        color = Color(0xFF000000),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.5.sp,
-                        maxLines = 1
-                    )
-                }
-                Surface(
-                    shape = RoundedCornerShape(3.dp),
-                    color = Color.White
-                ) {
-                    Text(
-                        text = "$orderCount عملية",
-                        color = Color(0xFF000000),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
-                    )
-                }
+                Text(
+                    text = "كشف متابعة العمل  $dayName  $fullDate",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    maxLines = 1
+                )
+
+                Text(
+                    text = "${orders.size} عملية",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp
+                )
             }
 
-            // Line 2: Day name & Full Date
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CalendarToday,
-                    contentDescription = null,
-                    tint = Color(0xFF000000),
-                    modifier = Modifier.size(11.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
+            // Line 2: Small live breakdown of order counts per category for that specific day only
+            if (breakdownText.isNotBlank()) {
                 Text(
-                    text = "اليوم: $dayName",
-                    color = Color(0xFF000000),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp
-                )
-                Text(
-                    text = "  |  ",
-                    color = Color(0xFF000000),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp
-                )
-                Text(
-                    text = fullDate,
-                    color = Color(0xFF000000),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp
+                    text = breakdownText,
+                    color = Color(0xFF0F172A),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 9.5.sp,
+                    maxLines = 1,
+                    modifier = Modifier.padding(top = 1.dp)
                 )
             }
         }

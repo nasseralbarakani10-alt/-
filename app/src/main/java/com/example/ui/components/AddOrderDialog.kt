@@ -2,6 +2,7 @@ package com.example.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -242,50 +243,62 @@ fun AddOrderDialog(
                     onExpandedChange = { categoryDropdownExpanded = it },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    OutlinedTextField(
-                        value = selectedCategory?.name ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = {
-                            Text(
-                                text = "نوع التفصيل",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Medium
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = selectedCategory?.name ?: "",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = {
+                                Text(
+                                    text = "نوع التفصيل",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
                                 )
-                            )
-                        },
-                        placeholder = {
-                            Text(
-                                text = "اختر نوع التفصيل (مثل: قطري، سعودي...)",
-                                style = TextStyle(
-                                    fontSize = 15.sp,
-                                    color = Color(0xFF757575),
-                                    fontWeight = FontWeight.Normal
+                            },
+                            placeholder = {
+                                Text(
+                                    text = "اختر نوع التفصيل (مثل: قطري، سعودي...)",
+                                    style = TextStyle(
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF757575),
+                                        fontWeight = FontWeight.Normal
+                                    )
                                 )
-                            )
-                        },
-                        textStyle = TextStyle(
-                            fontSize = 16.sp,
-                            color = Color.Black,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Category,
-                                contentDescription = null,
-                                tint = Color(0xFF1565C0)
-                            )
-                        },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded)
-                        },
-                        colors = appTextFieldColors(),
-                        modifier = Modifier
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                            .fillMaxWidth()
-                            .testTag("category_dropdown_field")
-                    )
+                            },
+                            textStyle = TextStyle(
+                                fontSize = 16.sp,
+                                color = Color.Black,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Category,
+                                    contentDescription = null,
+                                    tint = Color(0xFF1565C0)
+                                )
+                            },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded)
+                            },
+                            colors = appTextFieldColors(),
+                            modifier = Modifier
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                .fillMaxWidth()
+                                .testTag("category_dropdown_field")
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    categoryDropdownExpanded = !categoryDropdownExpanded
+                                }
+                        )
+                    }
 
                     ExposedDropdownMenu(
                         expanded = categoryDropdownExpanded,
@@ -339,40 +352,52 @@ fun AddOrderDialog(
                     onExpandedChange = { cutterDropdownExpanded = it },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    OutlinedTextField(
-                        value = selectedCutter?.name ?: "الافتراضي",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = {
-                            Text(
-                                text = "القصاص",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Medium
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = selectedCutter?.name ?: "الافتراضي",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = {
+                                Text(
+                                    text = "القصاص",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
                                 )
-                            )
-                        },
-                        textStyle = TextStyle(
-                            fontSize = 16.sp,
-                            color = Color.Black,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.ContentCut,
-                                contentDescription = null,
-                                tint = Color(0xFF1565C0)
-                            )
-                        },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = cutterDropdownExpanded)
-                        },
-                        colors = appTextFieldColors(),
-                        modifier = Modifier
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                            .fillMaxWidth()
-                            .testTag("cutter_dropdown_field")
-                    )
+                            },
+                            textStyle = TextStyle(
+                                fontSize = 16.sp,
+                                color = Color.Black,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.ContentCut,
+                                    contentDescription = null,
+                                    tint = Color(0xFF1565C0)
+                                )
+                            },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = cutterDropdownExpanded)
+                            },
+                            colors = appTextFieldColors(),
+                            modifier = Modifier
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                .fillMaxWidth()
+                                .testTag("cutter_dropdown_field")
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    cutterDropdownExpanded = !cutterDropdownExpanded
+                                }
+                        )
+                    }
 
                     ExposedDropdownMenu(
                         expanded = cutterDropdownExpanded,
@@ -419,40 +444,52 @@ fun AddOrderDialog(
                     onExpandedChange = { tailorDropdownExpanded = it },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    OutlinedTextField(
-                        value = selectedTailor?.name ?: "الافتراضي",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = {
-                            Text(
-                                text = "الخياط",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Medium
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = selectedTailor?.name ?: "الافتراضي",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = {
+                                Text(
+                                    text = "الخياط",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
                                 )
-                            )
-                        },
-                        textStyle = TextStyle(
-                            fontSize = 16.sp,
-                            color = Color.Black,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Engineering,
-                                contentDescription = null,
-                                tint = Color(0xFF1565C0)
-                            )
-                        },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = tailorDropdownExpanded)
-                        },
-                        colors = appTextFieldColors(),
-                        modifier = Modifier
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                            .fillMaxWidth()
-                            .testTag("tailor_dropdown_field")
-                    )
+                            },
+                            textStyle = TextStyle(
+                                fontSize = 16.sp,
+                                color = Color.Black,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Engineering,
+                                    contentDescription = null,
+                                    tint = Color(0xFF1565C0)
+                                )
+                            },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = tailorDropdownExpanded)
+                            },
+                            colors = appTextFieldColors(),
+                            modifier = Modifier
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                .fillMaxWidth()
+                                .testTag("tailor_dropdown_field")
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    tailorDropdownExpanded = !tailorDropdownExpanded
+                                }
+                        )
+                    }
 
                     ExposedDropdownMenu(
                         expanded = tailorDropdownExpanded,

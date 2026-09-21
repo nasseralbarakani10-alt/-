@@ -86,6 +86,9 @@ fun MessagingSettingsScreen(
     var delaySecondsText by remember { mutableStateOf(currentSettings.delaySeconds.toString()) }
     var autoSendEnabled by remember { mutableStateOf(currentSettings.autoSendEnabled) }
     var readyMessageTemplate by remember { mutableStateOf(currentSettings.readyMessageTemplate) }
+    var shopPhoneNumber by remember { mutableStateOf(currentSettings.shopPhoneNumber) }
+    var stopShopMessaging by remember { mutableStateOf(currentSettings.stopShopMessaging) }
+    var stopCustomerMessagingOnReady by remember { mutableStateOf(currentSettings.stopCustomerMessagingOnReady) }
 
     // Synchronize local form when settings load from database
     LaunchedEffect(currentSettings) {
@@ -93,6 +96,9 @@ fun MessagingSettingsScreen(
         delaySecondsText = currentSettings.delaySeconds.toString()
         autoSendEnabled = currentSettings.autoSendEnabled
         readyMessageTemplate = currentSettings.readyMessageTemplate
+        shopPhoneNumber = currentSettings.shopPhoneNumber
+        stopShopMessaging = currentSettings.stopShopMessaging
+        stopCustomerMessagingOnReady = currentSettings.stopCustomerMessagingOnReady
     }
 
     Scaffold(
@@ -156,6 +162,152 @@ fun MessagingSettingsScreen(
                 .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            // ==========================================
+            // SECTION 0: تحكم إرسال الرسائل ورقم المحل
+            // ==========================================
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("section_shop_customer_messaging_card"),
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFEFF6FF),
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Storefront,
+                                    contentDescription = null,
+                                    tint = BluePrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "رسائل المحل والعملاء",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = Color(0xFF0F172A)
+                        )
+                    }
+
+                    // رقم المحل
+                    OutlinedTextField(
+                        value = shopPhoneNumber,
+                        onValueChange = { shopPhoneNumber = it },
+                        label = { Text("رقم المحل") },
+                        placeholder = { Text("أدخل رقم هاتف المحل لتلقي إشعارات التجهيز") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("messaging_screen_shop_phone_input"),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+
+                    // إيقاف إرسال الرسائل للمحل
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (stopShopMessaging) Color(0xFFFEF2F2) else Color(0xFFF8FAFC))
+                            .border(
+                                1.dp,
+                                if (stopShopMessaging) Color(0xFFFECACA) else Color(0xFFE2E8F0),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "إيقاف إرسال الرسائل للمحل",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                text = if (stopShopMessaging)
+                                    "لن يتم إرسال رسائل أو إظهار تأكيد إرسال رسالة للمحل"
+                                else
+                                    "إظهار تأكيد إرسال رسالة للمحل عند اكتمال طلبات العميل",
+                                fontSize = 11.sp,
+                                color = if (stopShopMessaging) Color(0xFFDC2626) else Color(0xFF64748B)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(
+                            checked = stopShopMessaging,
+                            onCheckedChange = { stopShopMessaging = it },
+                            modifier = Modifier.testTag("messaging_screen_stop_shop_switch"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFDC2626)
+                            )
+                        )
+                    }
+
+                    // إيقاف إرسال رسائل للعملاء عند التجهيز
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (stopCustomerMessagingOnReady) Color(0xFFFEF2F2) else Color(0xFFF8FAFC))
+                            .border(
+                                1.dp,
+                                if (stopCustomerMessagingOnReady) Color(0xFFFECACA) else Color(0xFFE2E8F0),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "إيقاف إرسال رسائل للعملاء عند التجهيز",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                text = if (stopCustomerMessagingOnReady)
+                                    "لن يتم إرسال رسائل أو إظهار تأكيد إرسال رسالة للعميل"
+                                else
+                                    "إظهار تأكيد إرسال رسالة للعميل عند اكتمال طلباته",
+                                fontSize = 11.sp,
+                                color = if (stopCustomerMessagingOnReady) Color(0xFFDC2626) else Color(0xFF64748B)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(
+                            checked = stopCustomerMessagingOnReady,
+                            onCheckedChange = { stopCustomerMessagingOnReady = it },
+                            modifier = Modifier.testTag("messaging_screen_stop_customer_switch"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFDC2626)
+                            )
+                        )
+                    }
+                }
+            }
+
             // ==========================================
             // SECTION 1: نوع الرسائل
             // ==========================================
@@ -542,6 +694,9 @@ fun MessagingSettingsScreen(
                         delaySeconds = parsedDelay,
                         autoSendEnabled = autoSendEnabled,
                         readyMessageTemplate = readyMessageTemplate.ifBlank { MessagingSettings.DEFAULT_TEMPLATE },
+                        shopPhoneNumber = shopPhoneNumber,
+                        stopShopMessaging = stopShopMessaging,
+                        stopCustomerMessagingOnReady = stopCustomerMessagingOnReady,
                         onSuccess = {
                             scope.launch {
                                 snackbarHostState.showSnackbar("تم حفظ إعدادات الرسائل بنجاح")
