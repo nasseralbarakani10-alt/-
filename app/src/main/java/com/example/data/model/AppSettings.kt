@@ -7,10 +7,5 @@ import androidx.room.PrimaryKey
 data class AppSettings(
     @PrimaryKey
     val id: Int = 1,
-    val sortByFrequencyEnabled: Boolean = true,
-    val appTitle: String = DEFAULT_APP_TITLE
-) {
-    companion object {
-        const val DEFAULT_APP_TITLE = "كشف متابعة العمل لمحل ترند"
-    }
-}
+    val sortByFrequencyEnabled: Boolean = true
+)

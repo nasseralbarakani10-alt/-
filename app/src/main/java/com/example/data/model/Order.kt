@@ -9,12 +9,6 @@ import androidx.room.PrimaryKey
     tableName = "orders",
     foreignKeys = [
         ForeignKey(
-            entity = Customer::class,
-            parentColumns = ["id"],
-            childColumns = ["customerId"],
-            onDelete = ForeignKey.RESTRICT
-        ),
-        ForeignKey(
             entity = Category::class,
             parentColumns = ["id"],
             childColumns = ["categoryId"],
@@ -34,7 +28,6 @@ import androidx.room.PrimaryKey
         )
     ],
     indices = [
-        Index("customerId"),
         Index("categoryId"),
         Index("cutterId"),
         Index("tailorId")
@@ -43,8 +36,9 @@ import androidx.room.PrimaryKey
 data class Order(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val customerId: Long,
-    val sequenceNumber: Int = 1,
+    val customerName: String,
+    val customerNumber: String,
+    val phoneNumber: String,
     val categoryId: Long,
     val fabricType: String,
     val cutterId: Long? = null,

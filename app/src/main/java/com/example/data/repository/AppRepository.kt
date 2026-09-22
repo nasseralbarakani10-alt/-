@@ -2,7 +2,6 @@ package com.example.data.repository
 
 import com.example.data.dao.AppSettingsDao
 import com.example.data.dao.CategoryDao
-import com.example.data.dao.CustomerDao
 import com.example.data.dao.CutterDao
 import com.example.data.dao.CutterPriceDao
 import com.example.data.dao.CutterReportExpenseDao
@@ -16,7 +15,6 @@ import com.example.data.dao.UserDao
 import com.example.data.dao.UserPermissionsDao
 import com.example.data.model.AppSettings
 import com.example.data.model.Category
-import com.example.data.model.Customer
 import com.example.data.model.Cutter
 import com.example.data.model.CutterPrice
 import com.example.data.model.CutterReportExpense
@@ -30,9 +28,7 @@ import com.example.data.model.TailorReportExpense
 import com.example.data.model.User
 import com.example.data.model.UserPermissions
 import com.example.data.model.UserWithPermissions
-import com.example.data.preferences.MessagingPreferencesManager
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
 class AppRepository(
     private val orderDao: OrderDao,
@@ -47,88 +43,8 @@ class AppRepository(
     private val tailorReportExpenseDao: TailorReportExpenseDao,
     private val linkedDeviceDao: LinkedDeviceDao? = null,
     private val messagingSettingsDao: MessagingSettingsDao? = null,
-    private val appSettingsDao: AppSettingsDao? = null,
-    private val customerDao: CustomerDao? = null,
-    private val messagingPreferencesManager: MessagingPreferencesManager? = null
+    private val appSettingsDao: AppSettingsDao? = null
 ) {
-    // Customers
-    val allCustomers: Flow<List<Customer>> = customerDao?.getAllCustomers() ?: kotlinx.coroutines.flow.flowOf(emptyList())
-    suspend fun getCustomerById(id: Long): Customer? = customerDao?.getCustomerById(id)
-    fun getCustomerByIdFlow(id: Long): Flow<Customer?> = customerDao?.getCustomerByIdFlow(id) ?: kotlinx.coroutines.flow.flowOf(null)
-    suspend fun insertCustomer(customer: Customer): Long = customerDao?.insert(customer) ?: 0L
-    suspend fun updateCustomer(customer: Customer) = customerDao?.update(customer)
-    suspend fun deleteCustomer(customer: Customer) = customerDao?.delete(customer)
-    suspend fun deleteCustomerById(id: Long) = customerDao?.deleteById(id)
-    suspend fun getCustomerByNumber(number: String): Customer? = customerDao?.getCustomerByNumber(number)
-    suspend fun getCustomerByPhone(phone: String): Customer? = customerDao?.getCustomerByPhone(phone)
-    fun getOrdersForCustomer(customerId: Long): Flow<List<Order>> = orderDao.getOrdersForCustomer(customerId)
-    suspend fun getOrdersForCustomerDirect(customerId: Long): List<Order> = orderDao.getOrdersForCustomerDirect(customerId)
-
-    suspend fun saveCustomerAndOrder(
-        customerName: String,
-        customerNumber: String,
-        phoneNumber: String,
-        existingCustomerId: Long?,
-        order: Order
-    ): Pair<Long, Long> {
-        val finalCustomerId: Long
-        if (existingCustomerId != null && existingCustomerId > 0) {
-            finalCustomerId = existingCustomerId
-        } else {
-            val existing = customerDao?.getCustomerByNumber(customerNumber.trim())
-                ?: customerDao?.getCustomerByPhone(phoneNumber.trim())
-            if (existing != null) {
-                finalCustomerId = existing.id
-            } else {
-                val now = System.currentTimeMillis()
-                val newCust = Customer(
-                    name = customerName.trim(),
-                    customerNumber = customerNumber.trim(),
-                    phoneNumber = phoneNumber.trim(),
-                    createdAt = now
-                )
-                finalCustomerId = customerDao?.insert(newCust) ?: -1L
-            }
-        }
-
-        if (finalCustomerId <= 0) return Pair(-1L, -1L)
-
-        val existingOrders = orderDao.getOrdersForCustomerDirect(finalCustomerId)
-        val nextSeq = existingOrders.size + 1
-        val orderToInsert = order.copy(
-            customerId = finalCustomerId,
-            sequenceNumber = nextSeq
-        )
-        val orderId = orderDao.insert(orderToInsert)
-        if (orderId > 0) {
-            incrementCategoryUsageCount(order.categoryId)
-            if (order.cutterId != null) incrementCutterUsageCount(order.cutterId)
-            if (order.tailorId != null) incrementTailorUsageCount(order.tailorId)
-        }
-        return Pair(finalCustomerId, orderId)
-    }
-
-    suspend fun insertCustomerWithOrders(
-        customer: Customer,
-        orders: List<Order>
-    ): Long {
-        val customerId = customerDao?.insert(customer) ?: return -1L
-        if (customerId <= 0) return -1L
-        orders.forEachIndexed { index, order ->
-            val orderWithCustomer = order.copy(
-                customerId = customerId,
-                sequenceNumber = index + 1
-            )
-            val orderId = orderDao.insert(orderWithCustomer)
-            if (orderId > 0) {
-                incrementCategoryUsageCount(order.categoryId)
-                if (order.cutterId != null) incrementCutterUsageCount(order.cutterId)
-                if (order.tailorId != null) incrementTailorUsageCount(order.tailorId)
-            }
-        }
-        return customerId
-    }
-
     // Orders
     val allOrders: Flow<List<Order>> = orderDao.getAllOrders()
     val allOrdersWithCategory: Flow<List<OrderWithCategory>> = orderDao.getAllOrdersWithCategory()
@@ -467,63 +383,16 @@ class AppRepository(
         linkedDeviceDao?.deleteById(id)
     }
 
-    // Messaging Settings & Persistent Preferences
+    // Messaging Settings
     val messagingSettings: Flow<MessagingSettings?> =
-        (messagingSettingsDao?.getSettingsFlow() ?: kotlinx.coroutines.flow.flowOf(MessagingSettings()))
-            .map { settings ->
-                val s = settings ?: MessagingSettings()
-                val shopPhone = messagingPreferencesManager?.getShopPhoneNumber()?.ifBlank { s.shopPhoneNumber } ?: s.shopPhoneNumber
-                val stopShop = messagingPreferencesManager?.let { it.isStopShopMessaging() } ?: s.stopShopMessaging
-                val stopCustomer = messagingPreferencesManager?.let { it.isStopCustomerMessagingOnReady() } ?: s.stopCustomerMessagingOnReady
-                s.copy(
-                    shopPhoneNumber = shopPhone,
-                    stopShopMessaging = stopShop,
-                    stopCustomerMessagingOnReady = stopCustomer
-                )
-            }
+        messagingSettingsDao?.getSettingsFlow() ?: kotlinx.coroutines.flow.flowOf(MessagingSettings())
 
     suspend fun getMessagingSettingsDirect(): MessagingSettings {
-        val fromDb = messagingSettingsDao?.getSettings() ?: MessagingSettings()
-        val shopPhone = messagingPreferencesManager?.getShopPhoneNumber()?.ifBlank { fromDb.shopPhoneNumber } ?: fromDb.shopPhoneNumber
-        val stopShop = messagingPreferencesManager?.isStopShopMessaging() ?: fromDb.stopShopMessaging
-        val stopCustomer = messagingPreferencesManager?.isStopCustomerMessagingOnReady() ?: fromDb.stopCustomerMessagingOnReady
-        return fromDb.copy(
-            shopPhoneNumber = shopPhone,
-            stopShopMessaging = stopShop,
-            stopCustomerMessagingOnReady = stopCustomer
-        )
+        return messagingSettingsDao?.getSettings() ?: MessagingSettings()
     }
 
     suspend fun saveMessagingSettings(settings: MessagingSettings) {
         messagingSettingsDao?.saveSettings(settings)
-        messagingPreferencesManager?.setShopPhoneNumber(settings.shopPhoneNumber)
-        messagingPreferencesManager?.setStopShopMessaging(settings.stopShopMessaging)
-        messagingPreferencesManager?.setStopCustomerMessagingOnReady(settings.stopCustomerMessagingOnReady)
-    }
-
-    fun getShopPhoneNumber(): String = messagingPreferencesManager?.getShopPhoneNumber() ?: ""
-
-    fun setShopPhoneNumber(phone: String) {
-        messagingPreferencesManager?.setShopPhoneNumber(phone)
-    }
-
-    fun isStopShopMessaging(): Boolean = messagingPreferencesManager?.isStopShopMessaging() ?: false
-
-    fun setStopShopMessaging(stop: Boolean) {
-        messagingPreferencesManager?.setStopShopMessaging(stop)
-    }
-
-    fun isStopCustomerMessagingOnReady(): Boolean = messagingPreferencesManager?.isStopCustomerMessagingOnReady() ?: false
-
-    fun setStopCustomerMessagingOnReady(stop: Boolean) {
-        messagingPreferencesManager?.setStopCustomerMessagingOnReady(stop)
-    }
-
-    fun isCustomerMessagingAllowed(customerId: Long): Boolean =
-        messagingPreferencesManager?.isCustomerMessagingAllowed(customerId) ?: true
-
-    fun setCustomerMessagingAllowed(customerId: Long, allowed: Boolean) {
-        messagingPreferencesManager?.setCustomerMessagingAllowed(customerId, allowed)
     }
 
     // App Settings

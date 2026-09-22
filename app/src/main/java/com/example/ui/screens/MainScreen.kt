@@ -57,12 +57,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.data.model.AppSettings
-import com.example.data.model.Customer
 import com.example.data.model.MessagingSettings
 import com.example.data.model.Order
 import com.example.data.model.OrderWithCategory
-import com.example.ui.components.CustomerCard
+import com.example.ui.components.AddOrderDialog
 import com.example.ui.components.DailyOrderSeparator
 import com.example.ui.components.OrderCard
 import com.example.ui.components.appTextFieldColors
@@ -75,7 +73,6 @@ import com.example.ui.viewmodel.CategoriesViewModel
 import com.example.ui.viewmodel.CuttersViewModel
 import com.example.ui.viewmodel.MessagingViewModel
 import com.example.ui.viewmodel.OrdersViewModel
-import com.example.ui.viewmodel.SettingsViewModel
 import com.example.ui.viewmodel.TailorsViewModel
 import com.example.util.MessagingDispatcher
 import com.example.util.SmsHelper
@@ -85,18 +82,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private data class ClientOrdersGroup(
-    val customer: Customer,
-    val orders: List<OrderWithCategory>,
-    val totalOrdersCount: Int
-)
-
 private data class DayGroup(
     val dayKey: String,
     val dayName: String,
     val fullDate: String,
-    val orders: List<OrderWithCategory>,
-    val clientGroups: List<ClientOrdersGroup>
+    val orders: List<OrderWithCategory>
 )
 
 @Composable
@@ -106,7 +96,6 @@ fun MainScreen(
     cuttersViewModel: CuttersViewModel,
     tailorsViewModel: TailorsViewModel,
     messagingViewModel: MessagingViewModel? = null,
-    settingsViewModel: SettingsViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     val ordersWithCategory by ordersViewModel.ordersWithCategory.collectAsStateWithLifecycle()
@@ -119,14 +108,11 @@ fun MainScreen(
     val messagingSettings by (messagingViewModel?.settings ?: remember {
         MutableStateFlow(MessagingSettings())
     }).collectAsStateWithLifecycle()
-    val appSettings by (settingsViewModel?.appSettings ?: remember {
-        MutableStateFlow(AppSettings())
-    }).collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     var editingOrderDetail by remember { mutableStateOf<OrderWithCategory?>(null) }
-    var activeCompletionFlow by remember { mutableStateOf<CustomerCompletionFlowState?>(null) }
-    var pendingSmsData by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var pendingReadyConfirmationOrder by remember { mutableStateOf<Order?>(null) }
+    var pendingSmsOrder by remember { mutableStateOf<Order?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -134,15 +120,18 @@ fun MainScreen(
     val smsPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        val target = pendingSmsData
-        pendingSmsData = null
-        if (target != null) {
-            val (phone, message) = target
+        val targetOrder = pendingSmsOrder
+        pendingSmsOrder = null
+        if (targetOrder != null) {
             if (isGranted) {
+                val template = messagingSettings.readyMessageTemplate.ifBlank {
+                    MessagingSettings.DEFAULT_TEMPLATE
+                }
+                val messageText = "عميلنا: ${targetOrder.customerName} / ${targetOrder.customerNumber}\n$template"
                 MessagingDispatcher.enqueueSms(
                     context = context,
-                    phoneNumber = phone,
-                    messageText = message,
+                    phoneNumber = targetOrder.phoneNumber,
+                    messageText = messageText,
                     delaySeconds = messagingSettings.delaySeconds
                 ) { _, msg ->
                     scope.launch { snackbarHostState.showSnackbar(msg) }
@@ -152,54 +141,21 @@ fun MainScreen(
                     snackbarHostState.showSnackbar("لم يتم منح إذن إرسال الرسائل القصيرة (SMS)")
                 }
             }
+            ordersViewModel.setOrderReady(
+                order = targetOrder,
+                ready = true,
+                onError = { err -> scope.launch { snackbarHostState.showSnackbar(err) } }
+            )
         }
     }
 
-    val startCompletionNotificationFlow: (Customer, List<Order>) -> Unit = { customer, orders ->
-        val isShopStopped = messagingSettings.stopShopMessaging || ordersViewModel.isStopShopMessaging()
-        val isShopActive = !isShopStopped
-
-        val isCustomerGloballyStopped = messagingSettings.stopCustomerMessagingOnReady || ordersViewModel.isStopCustomerMessagingOnReady()
-        val isCustomerSpecificallyAllowed = ordersViewModel.isCustomerMessagingAllowed(customer.id)
-        val isCustomerActive = !isCustomerGloballyStopped && isCustomerSpecificallyAllowed
-
-        if (isShopActive) {
-            activeCompletionFlow = CustomerCompletionFlowState(
-                customer = customer,
-                orders = orders,
-                step = CompletionStep.SHOP_MESSAGE
-            )
-        } else if (isCustomerActive) {
-            activeCompletionFlow = CustomerCompletionFlowState(
-                customer = customer,
-                orders = orders,
-                step = CompletionStep.CUSTOMER_MESSAGE
-            )
-        } else {
-            activeCompletionFlow = null
-        }
-    }
-
-    var showAddCustomerScreen by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
     var showSearchRow by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     val todayFormatted = remember {
         val formatter = SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar"))
         formatter.format(Date())
-    }
-
-    // If navigating to full-screen Add Customer
-    if (showAddCustomerScreen) {
-        AddCustomerScreen(
-            categories = categories,
-            cutters = cutters,
-            tailors = tailors,
-            ordersViewModel = ordersViewModel,
-            onNavigateBack = { showAddCustomerScreen = false },
-            modifier = modifier
-        )
-        return
     }
 
     // If viewing/editing customer details
@@ -209,26 +165,12 @@ fun MainScreen(
             categories = categories,
             cutters = cutters,
             tailors = tailors,
-            ordersViewModel = ordersViewModel,
             onBack = { editingOrderDetail = null },
-            onSave = { updatedOrder, updatedCustomer ->
-                val wasReady = editingOrderDetail?.order?.ready == true
-                val isNowReady = updatedOrder.ready
-                ordersViewModel.updateOrderAndCustomer(
+            onSave = { updatedOrder ->
+                ordersViewModel.updateOrder(
                     order = updatedOrder,
-                    customer = updatedCustomer,
                     onSuccess = {
                         editingOrderDetail = null
-                        if (isNowReady && !wasReady) {
-                            ordersViewModel.checkAndTriggerCompletion(
-                                customerId = updatedOrder.customerId,
-                                onTrigger = { customer, orders ->
-                                    startCompletionNotificationFlow(customer, orders)
-                                }
-                            )
-                        } else if (!isNowReady && wasReady) {
-                            ordersViewModel.resetCustomerCompletionNotified(updatedOrder.customerId)
-                        }
                         scope.launch {
                             snackbarHostState.showSnackbar("تم حفظ التعديلات بنجاح")
                         }
@@ -245,46 +187,21 @@ fun MainScreen(
         return
     }
 
-    // Group clients with all their orders, and organize by date
+    // Group orders by date portion of createdAt (day boundaries in local device timezone)
     val groupedOrders = remember(ordersWithCategory) {
         val dayKeyFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val dayNameFormat = SimpleDateFormat("EEEE", Locale("ar"))
         val fullDateFormat = SimpleDateFormat("d MMMM yyyy", Locale("ar"))
 
-        // Group all orders by customerId so each client is represented once with all their orders
-        val clientEntries = ordersWithCategory
-            .groupBy { it.order.customerId }
-            .map { (customerId, clientOrders) ->
-                val firstItem = clientOrders.first()
-                val customer = firstItem.customer ?: Customer(
-                    id = customerId,
-                    name = firstItem.customerName,
-                    customerNumber = firstItem.customerNumber,
-                    phoneNumber = firstItem.phoneNumber,
-                    createdAt = firstItem.order.createdAt
-                )
-                val sortedOrders = clientOrders.sortedBy { it.order.sequenceNumber }
-                val latestOrderDate = sortedOrders.maxOfOrNull { it.order.createdAt } ?: customer.createdAt
-                val clientGroup = ClientOrdersGroup(
-                    customer = customer,
-                    orders = sortedOrders,
-                    totalOrdersCount = sortedOrders.size
-                )
-                latestOrderDate to clientGroup
-            }
-
-        clientEntries
-            .groupBy { dayKeyFormat.format(Date(it.first)) }
-            .map { (dayKey, entries) ->
-                val firstDate = Date(entries.first().first)
-                val clientGroupsInDay = entries.map { it.second }.sortedByDescending { it.customer.id }
-                val allOrdersInDay = clientGroupsInDay.flatMap { it.orders }
+        ordersWithCategory
+            .groupBy { dayKeyFormat.format(Date(it.order.createdAt)) }
+            .map { (dayKey, items) ->
+                val firstDate = Date(items.first().order.createdAt)
                 DayGroup(
                     dayKey = dayKey,
                     dayName = dayNameFormat.format(firstDate),
                     fullDate = fullDateFormat.format(firstDate),
-                    orders = allOrdersInDay,
-                    clientGroups = clientGroupsInDay
+                    orders = items.sortedByDescending { it.order.createdAt }
                 )
             }
             .sortedByDescending { it.dayKey }
@@ -309,7 +226,7 @@ fun MainScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = appSettings.appTitle.ifBlank { AppSettings.DEFAULT_APP_TITLE },
+                        text = "كشف متابعة العمل لمحلات ترند للخياطة الرجالية",
                         color = Color(0xFF000000),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
@@ -409,7 +326,7 @@ fun MainScreen(
 
                 // "إضافة عميل" Button: green background, white text
                 Button(
-                    onClick = { showAddCustomerScreen = true },
+                    onClick = { showAddDialog = true },
                     colors = ButtonDefaults.buttonColors(containerColor = GreenButton),
                     shape = RoundedCornerShape(6.dp),
                     contentPadding = PaddingValues(vertical = 12.dp, horizontal = 4.dp),
@@ -610,24 +527,22 @@ fun MainScreen(
                             DailyOrderSeparator(
                                 dayName = dayGroup.dayName,
                                 fullDate = dayGroup.fullDate,
-                                orders = dayGroup.orders
+                                orderCount = dayGroup.orders.size
                             )
                         }
 
-                        // CLIENT CARDS FOR THAT DAY (Each client shown ONCE with all their orders)
+                        // ORDERS FOR THAT DAY
                         items(
-                            items = dayGroup.clientGroups,
-                            key = { "client_${it.customer.id}_${dayGroup.dayKey}" }
-                        ) { clientGroup ->
-                            CustomerCard(
-                                customer = clientGroup.customer,
-                                orders = clientGroup.orders,
-                                totalOrdersCount = clientGroup.totalOrdersCount,
-                                selectedIds = selectedIds,
-                                onToggleSelect = { orderId -> ordersViewModel.toggleSelection(orderId) },
-                                onToggleLaundry = { order ->
+                            items = dayGroup.orders,
+                            key = { it.order.id }
+                        ) { item ->
+                            OrderCard(
+                                orderWithCategory = item,
+                                isSelected = selectedIds.contains(item.order.id),
+                                onToggleSelect = { ordersViewModel.toggleSelection(item.order.id) },
+                                onToggleLaundry = {
                                     ordersViewModel.toggleLaundry(
-                                        order = order,
+                                        order = item.order,
                                         onError = { error ->
                                             scope.launch {
                                                 snackbarHostState.showSnackbar(error)
@@ -635,9 +550,9 @@ fun MainScreen(
                                         }
                                     )
                                 },
-                                onToggleButtonIroning = { order ->
+                                onToggleButtonIroning = {
                                     ordersViewModel.toggleButtonIroning(
-                                        order = order,
+                                        order = item.order,
                                         onError = { error ->
                                             scope.launch {
                                                 snackbarHostState.showSnackbar(error)
@@ -645,34 +560,13 @@ fun MainScreen(
                                         }
                                     )
                                 },
-                                onToggleReady = { item ->
-                                    val order = item.order
-                                    val customerId = order.customerId
-                                    if (!order.ready) {
-                                        ordersViewModel.setOrderReady(
-                                            order = order,
-                                            ready = true,
-                                            onSuccess = {
-                                                ordersViewModel.checkAndTriggerCompletion(
-                                                    customerId = customerId,
-                                                    onTrigger = { customer, orders ->
-                                                        startCompletionNotificationFlow(customer, orders)
-                                                    }
-                                                )
-                                            },
-                                            onError = { error ->
-                                                scope.launch {
-                                                    snackbarHostState.showSnackbar(error)
-                                                }
-                                            }
-                                        )
+                                onToggleReady = {
+                                    if (!item.order.ready) {
+                                        pendingReadyConfirmationOrder = item.order
                                     } else {
                                         ordersViewModel.setOrderReady(
-                                            order = order,
+                                            order = item.order,
                                             ready = false,
-                                            onSuccess = {
-                                                ordersViewModel.resetCustomerCompletionNotified(customerId)
-                                            },
                                             onError = { error ->
                                                 scope.launch {
                                                     snackbarHostState.showSnackbar(error)
@@ -681,11 +575,8 @@ fun MainScreen(
                                         )
                                     }
                                 },
-                                onOpenOrderDetail = { item ->
+                                onOpenDetail = {
                                     editingOrderDetail = item
-                                },
-                                onOpenCustomerDetail = { _ ->
-                                    editingOrderDetail = clientGroup.orders.firstOrNull()
                                 },
                                 modifier = Modifier.padding(horizontal = 8.dp)
                             )
@@ -701,6 +592,33 @@ fun MainScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 16.dp)
+        )
+    }
+
+    // ADD ORDER DIALOG
+    if (showAddDialog) {
+        AddOrderDialog(
+            categories = categories,
+            cutters = cutters,
+            tailors = tailors,
+            onDismiss = { showAddDialog = false },
+            onSave = { customerName, customerNumber, phoneNumber, categoryId, fabricType, cutterId, tailorId, buttonIroning, laundry ->
+                ordersViewModel.addOrder(
+                    customerName = customerName,
+                    customerNumber = customerNumber,
+                    phoneNumber = phoneNumber,
+                    categoryId = categoryId,
+                    fabricType = fabricType,
+                    cutterId = cutterId,
+                    tailorId = tailorId,
+                    buttonIroning = buttonIroning,
+                    laundry = laundry
+                )
+                showAddDialog = false
+                scope.launch {
+                    snackbarHostState.showSnackbar("تم إضافة العميل بنجاح")
+                }
+            }
         )
     }
 
@@ -757,229 +675,142 @@ fun MainScreen(
         )
     }
 
-    // COMPLETION NOTIFICATION FLOW (SHOP MESSAGE THEN CUSTOMER MESSAGE)
-    activeCompletionFlow?.let { flow ->
-        val isCustomerGloballyStopped = messagingSettings.stopCustomerMessagingOnReady || ordersViewModel.isStopCustomerMessagingOnReady()
-        val isCustomerSpecificallyAllowed = ordersViewModel.isCustomerMessagingAllowed(flow.customer.id)
-        val isCustomerActive = !isCustomerGloballyStopped && isCustomerSpecificallyAllowed
-
-        when (flow.step) {
-            CompletionStep.SHOP_MESSAGE -> {
-                AlertDialog(
-                    onDismissRequest = {
-                        activeCompletionFlow = if (isCustomerActive) {
-                            flow.copy(step = CompletionStep.CUSTOMER_MESSAGE)
-                        } else {
-                            null
-                        }
-                    },
-                    title = {
-                        Text(
-                            text = "إرسال رسالة للمحل",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp,
-                            color = Color(0xFF0F172A)
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = "هل تريد إرسال رسالة للمحل باكتمال وتجهيز كافة طلبات العميل: ${flow.customer.name}؟",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontSize = 15.sp,
-                                color = Color(0xFF1E293B)
-                            )
-                        )
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                val ordersCount = flow.orders.size
-                                val shopMessageText = "إشعار للمحل: اكتملت جميع طلبات العميل ${flow.customer.name} (رقم: ${flow.customer.customerNumber}) - عدد الطلبات: $ordersCount جاهزة للتسليم"
-                                val shopPhone = messagingSettings.shopPhoneNumber.ifBlank { ordersViewModel.shopPhoneNumber }.ifBlank { flow.customer.phoneNumber }
-
-                                when (messagingSettings.messageType) {
-                                    MessagingSettings.MESSAGE_TYPE_SMS -> {
-                                        val hasSmsPermission = ContextCompat.checkSelfPermission(
-                                            context,
-                                            Manifest.permission.SEND_SMS
-                                        ) == PackageManager.PERMISSION_GRANTED
-
-                                        if (hasSmsPermission) {
-                                            MessagingDispatcher.enqueueSms(
-                                                context = context,
-                                                phoneNumber = shopPhone,
-                                                messageText = shopMessageText,
-                                                delaySeconds = messagingSettings.delaySeconds
-                                            ) { _, msg ->
-                                                scope.launch { snackbarHostState.showSnackbar("تم إرسال رسالة للمحل بنجاح") }
-                                            }
-                                        } else {
-                                            scope.launch { snackbarHostState.showSnackbar("تم إرسال إشعار المحل بنجاح") }
-                                        }
-                                    }
-                                    MessagingSettings.MESSAGE_TYPE_WHATSAPP_BUSINESS -> {
-                                        MessagingDispatcher.openWhatsApp(
-                                            context = context,
-                                            phoneNumber = shopPhone,
-                                            messageText = shopMessageText,
-                                            isBusiness = true
-                                        ) { _, msg ->
-                                            scope.launch { snackbarHostState.showSnackbar(msg) }
-                                        }
-                                    }
-                                    else -> { // MessagingSettings.MESSAGE_TYPE_WHATSAPP
-                                        MessagingDispatcher.openWhatsApp(
-                                            context = context,
-                                            phoneNumber = shopPhone,
-                                            messageText = shopMessageText,
-                                            isBusiness = false
-                                        ) { _, msg ->
-                                            scope.launch { snackbarHostState.showSnackbar(msg) }
-                                        }
-                                    }
-                                }
-
-                                activeCompletionFlow = if (isCustomerActive) {
-                                    flow.copy(step = CompletionStep.CUSTOMER_MESSAGE)
-                                } else {
-                                    null
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = GreenButton),
-                            shape = RoundedCornerShape(6.dp),
-                            modifier = Modifier.testTag("confirm_shop_message_yes_btn")
-                        ) {
-                            Text("نعم", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                    },
-                    dismissButton = {
-                        Button(
-                            onClick = {
-                                activeCompletionFlow = if (isCustomerActive) {
-                                    flow.copy(step = CompletionStep.CUSTOMER_MESSAGE)
-                                } else {
-                                    null
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
-                            shape = RoundedCornerShape(6.dp),
-                            modifier = Modifier.testTag("confirm_shop_message_no_btn")
-                        ) {
-                            Text("لا", color = Color(0xFF000000), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                    }
+    // READY CONFIRMATION DIALOG (WITH MESSAGING OPTION)
+    pendingReadyConfirmationOrder?.let { targetOrder ->
+        AlertDialog(
+            onDismissRequest = { pendingReadyConfirmationOrder = null },
+            title = {
+                Text(
+                    text = "تأكيد جاهزية الطلب",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    color = Color(0xFF0F172A)
                 )
-            }
-            CompletionStep.CUSTOMER_MESSAGE -> {
-                AlertDialog(
-                    onDismissRequest = { activeCompletionFlow = null },
-                    title = {
-                        Text(
-                            text = "إرسال رسالة للعميل",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp,
-                            color = Color(0xFF0F172A)
-                        )
-                    },
-                    text = {
-                        val appLabel = when (messagingSettings.messageType) {
-                            MessagingSettings.MESSAGE_TYPE_WHATSAPP_BUSINESS -> "واتساب أعمال"
-                            MessagingSettings.MESSAGE_TYPE_WHATSAPP -> "واتساب"
-                            else -> "SMS"
-                        }
-                        Text(
-                            text = "هل تريد إرسال رسالة للعميل عبر $appLabel بأن الطلب جاهز للتسليم؟",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontSize = 15.sp,
-                                color = Color(0xFF1E293B)
-                            )
-                        )
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                val currentCustomer = flow.customer
-                                activeCompletionFlow = null
-                                val template = messagingSettings.readyMessageTemplate.ifBlank {
-                                    MessagingSettings.DEFAULT_TEMPLATE
-                                }
-                                val messageText = "عميلنا: ${currentCustomer.name} / ${currentCustomer.customerNumber}\n$template"
-
-                                when (messagingSettings.messageType) {
-                                    MessagingSettings.MESSAGE_TYPE_SMS -> {
-                                        val hasSmsPermission = ContextCompat.checkSelfPermission(
-                                            context,
-                                            Manifest.permission.SEND_SMS
-                                        ) == PackageManager.PERMISSION_GRANTED
-
-                                        if (hasSmsPermission) {
-                                            MessagingDispatcher.enqueueSms(
-                                                context = context,
-                                                phoneNumber = currentCustomer.phoneNumber,
-                                                messageText = messageText,
-                                                delaySeconds = messagingSettings.delaySeconds
-                                            ) { _, msg ->
-                                                scope.launch { snackbarHostState.showSnackbar(msg) }
-                                            }
-                                        } else {
-                                            pendingSmsData = Pair(currentCustomer.phoneNumber, messageText)
-                                            smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
-                                        }
-                                    }
-                                    MessagingSettings.MESSAGE_TYPE_WHATSAPP_BUSINESS -> {
-                                        MessagingDispatcher.openWhatsApp(
-                                            context = context,
-                                            phoneNumber = currentCustomer.phoneNumber,
-                                            messageText = messageText,
-                                            isBusiness = true
-                                        ) { _, msg ->
-                                            scope.launch { snackbarHostState.showSnackbar(msg) }
-                                        }
-                                    }
-                                    else -> { // MessagingSettings.MESSAGE_TYPE_WHATSAPP
-                                        MessagingDispatcher.openWhatsApp(
-                                            context = context,
-                                            phoneNumber = currentCustomer.phoneNumber,
-                                            messageText = messageText,
-                                            isBusiness = false
-                                        ) { _, msg ->
-                                            scope.launch { snackbarHostState.showSnackbar(msg) }
-                                        }
-                                    }
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = GreenButton),
-                            shape = RoundedCornerShape(6.dp),
-                            modifier = Modifier.testTag("confirm_customer_message_yes_btn")
-                        ) {
-                            Text("نعم", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                    },
-                    dismissButton = {
-                        Button(
-                            onClick = {
-                                activeCompletionFlow = null
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
-                            shape = RoundedCornerShape(6.dp),
-                            modifier = Modifier.testTag("confirm_customer_message_no_btn")
-                        ) {
-                            Text("لا", color = Color(0xFF000000), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                    }
+            },
+            text = {
+                val appLabel = when (messagingSettings.messageType) {
+                    MessagingSettings.MESSAGE_TYPE_WHATSAPP_BUSINESS -> "واتساب أعمال"
+                    MessagingSettings.MESSAGE_TYPE_WHATSAPP -> "واتساب"
+                    else -> "SMS"
+                }
+                Text(
+                    text = "هل تريد إرسال رسالة للعميل عبر $appLabel بأن الطلب جاهز للتسليم؟",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 15.sp,
+                        color = Color(0xFF1E293B)
+                    )
                 )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val current = targetOrder
+                        pendingReadyConfirmationOrder = null
+                        val template = messagingSettings.readyMessageTemplate.ifBlank {
+                            MessagingSettings.DEFAULT_TEMPLATE
+                        }
+                        val messageText = "عميلنا: ${current.customerName} / ${current.customerNumber}\n$template"
+
+                        when (messagingSettings.messageType) {
+                            MessagingSettings.MESSAGE_TYPE_SMS -> {
+                                if (messagingSettings.autoSendEnabled) {
+                                    val hasSmsPermission = ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.SEND_SMS
+                                    ) == PackageManager.PERMISSION_GRANTED
+
+                                    if (hasSmsPermission) {
+                                        MessagingDispatcher.enqueueSms(
+                                            context = context,
+                                            phoneNumber = current.phoneNumber,
+                                            messageText = messageText,
+                                            delaySeconds = messagingSettings.delaySeconds
+                                        ) { _, msg ->
+                                            scope.launch { snackbarHostState.showSnackbar(msg) }
+                                        }
+                                        ordersViewModel.setOrderReady(
+                                            order = current,
+                                            ready = true,
+                                            onError = { err -> scope.launch { snackbarHostState.showSnackbar(err) } }
+                                        )
+                                    } else {
+                                        pendingSmsOrder = current
+                                        smsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
+                                    }
+                                } else {
+                                    ordersViewModel.setOrderReady(
+                                        order = current,
+                                        ready = true,
+                                        onError = { err -> scope.launch { snackbarHostState.showSnackbar(err) } }
+                                    )
+                                }
+                            }
+                            MessagingSettings.MESSAGE_TYPE_WHATSAPP_BUSINESS -> {
+                                MessagingDispatcher.openWhatsApp(
+                                    context = context,
+                                    phoneNumber = current.phoneNumber,
+                                    messageText = messageText,
+                                    isBusiness = true
+                                ) { _, msg ->
+                                    scope.launch { snackbarHostState.showSnackbar(msg) }
+                                }
+                                ordersViewModel.setOrderReady(
+                                    order = current,
+                                    ready = true,
+                                    onError = { err -> scope.launch { snackbarHostState.showSnackbar(err) } }
+                                )
+                            }
+                            else -> { // MessagingSettings.MESSAGE_TYPE_WHATSAPP
+                                MessagingDispatcher.openWhatsApp(
+                                    context = context,
+                                    phoneNumber = current.phoneNumber,
+                                    messageText = messageText,
+                                    isBusiness = false
+                                ) { _, msg ->
+                                    scope.launch { snackbarHostState.showSnackbar(msg) }
+                                }
+                                ordersViewModel.setOrderReady(
+                                    order = current,
+                                    ready = true,
+                                    onError = { err -> scope.launch { snackbarHostState.showSnackbar(err) } }
+                                )
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenButton),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.testTag("confirm_ready_yes_sms_btn")
+                ) {
+                    Text("نعم", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            val current = targetOrder
+                            pendingReadyConfirmationOrder = null
+                            ordersViewModel.setOrderReady(
+                                order = current,
+                                ready = true,
+                                onError = { err -> scope.launch { snackbarHostState.showSnackbar(err) } }
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.testTag("confirm_ready_no_sms_btn")
+                    ) {
+                        Text("لا", color = Color(0xFF000000), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+
+                    TextButton(
+                        onClick = { pendingReadyConfirmationOrder = null },
+                        modifier = Modifier.testTag("confirm_ready_cancel_btn")
+                    ) {
+                        Text("إلغاء", color = Color(0xFF000000), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                }
             }
-        }
+        )
     }
 }
-
-enum class CompletionStep {
-    SHOP_MESSAGE,
-    CUSTOMER_MESSAGE
-}
-
-data class CustomerCompletionFlowState(
-    val customer: Customer,
-    val orders: List<Order>,
-    val step: CompletionStep
-)

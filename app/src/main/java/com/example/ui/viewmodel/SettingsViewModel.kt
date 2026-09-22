@@ -24,22 +24,10 @@ class SettingsViewModel(
 
     fun setSortByFrequencyEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            val current = appSettings.value
             repository.saveAppSettings(
-                current.copy(
+                AppSettings(
+                    id = 1,
                     sortByFrequencyEnabled = enabled
-                )
-            )
-        }
-    }
-
-    fun setAppTitle(title: String) {
-        viewModelScope.launch {
-            val current = appSettings.value
-            val finalTitle = title.trim().ifBlank { AppSettings.DEFAULT_APP_TITLE }
-            repository.saveAppSettings(
-                current.copy(
-                    appTitle = finalTitle
                 )
             )
         }

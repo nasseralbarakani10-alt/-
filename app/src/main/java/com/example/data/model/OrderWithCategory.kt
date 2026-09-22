@@ -6,11 +6,6 @@ import androidx.room.Relation
 data class OrderWithCategory(
     @Embedded val order: Order,
     @Relation(
-        parentColumn = "customerId",
-        entityColumn = "id"
-    )
-    val customer: Customer? = null,
-    @Relation(
         parentColumn = "categoryId",
         entityColumn = "id"
     )
@@ -25,8 +20,4 @@ data class OrderWithCategory(
         entityColumn = "id"
     )
     val tailor: Tailor? = null
-) {
-    val customerName: String get() = customer?.name ?: ""
-    val customerNumber: String get() = customer?.customerNumber ?: ""
-    val phoneNumber: String get() = customer?.phoneNumber ?: ""
-}
+)

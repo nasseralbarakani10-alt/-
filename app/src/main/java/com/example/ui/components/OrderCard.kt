@@ -51,9 +51,6 @@ fun OrderCard(
     modifier: Modifier = Modifier
 ) {
     val order = orderWithCategory.order
-    val customerName = orderWithCategory.customerName
-    val customerNumber = orderWithCategory.customerNumber
-    val phoneNumber = orderWithCategory.phoneNumber
     val categoryName = orderWithCategory.category?.name ?: "غير محدد"
     val cutterName = orderWithCategory.cutter?.name ?: "الافتراضي"
     val tailorName = orderWithCategory.tailor?.name ?: "الافتراضي"
@@ -136,22 +133,22 @@ fun OrderCard(
                         )
                         Spacer(modifier = Modifier.width(2.dp))
                         Text(
-                            text = customerName,
+                            text = order.customerName,
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF000000)
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = "[#$customerNumber]",
+                            text = "[#${order.customerNumber}]",
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0277BD)
                         )
-                        if (phoneNumber.isNotBlank()) {
+                        if (order.phoneNumber.isNotBlank()) {
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
-                                text = "($phoneNumber)",
+                                text = "(${order.phoneNumber})",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF000000)

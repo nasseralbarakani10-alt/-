@@ -5,7 +5,6 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.database.AppDatabase
 import com.example.data.model.Category
-import com.example.data.model.Customer
 import com.example.data.model.Cutter
 import com.example.data.model.Order
 import com.example.data.model.Tailor
@@ -53,8 +52,7 @@ class ReportsRobolectricTest {
             userDao = db.userDao(),
             userPermissionsDao = db.userPermissionsDao(),
             cutterReportExpenseDao = db.cutterReportExpenseDao(),
-            tailorReportExpenseDao = db.tailorReportExpenseDao(),
-            customerDao = db.customerDao()
+            tailorReportExpenseDao = db.tailorReportExpenseDao()
         )
         val sessionManager = SessionManager(context, repository, CoroutineScope(Dispatchers.Unconfined))
         runBlocking {
@@ -93,18 +91,11 @@ class ReportsRobolectricTest {
         val yesterdayTime = yesterday.timeInMillis
 
         // Order created today
-        val custTodayId = repository.insertCustomer(
-            Customer(
-                name = "خالد اليوم",
-                customerNumber = "101",
-                phoneNumber = "0501234567",
-                createdAt = today.timeInMillis
-            )
-        )
         repository.insertOrder(
             Order(
-                customerId = custTodayId,
-                sequenceNumber = 1,
+                customerName = "خالد اليوم",
+                customerNumber = "101",
+                phoneNumber = "0501234567",
                 categoryId = catId,
                 cutterId = cutterId,
                 tailorId = tailorId,
@@ -114,18 +105,11 @@ class ReportsRobolectricTest {
         )
 
         // Order created yesterday
-        val custYesterdayId = repository.insertCustomer(
-            Customer(
-                name = "سالم الأمس",
-                customerNumber = "102",
-                phoneNumber = "0509876543",
-                createdAt = yesterdayTime
-            )
-        )
         repository.insertOrder(
             Order(
-                customerId = custYesterdayId,
-                sequenceNumber = 1,
+                customerName = "سالم الأمس",
+                customerNumber = "102",
+                phoneNumber = "0509876543",
                 categoryId = catId,
                 cutterId = cutterId,
                 tailorId = tailorId,
@@ -137,7 +121,7 @@ class ReportsRobolectricTest {
         // Query today's orders
         val todayOrders = ordersViewModel.getOrdersBetween(todayStart, todayEnd).first()
         assertEquals(1, todayOrders.size)
-        assertEquals("خالد اليوم", todayOrders[0].customerName)
+        assertEquals("خالد اليوم", todayOrders[0].order.customerName)
 
         // Query yesterday to today range
         val rangeOrders = ordersViewModel.getOrdersBetween(getStartOfDay(yesterday), todayEnd).first()

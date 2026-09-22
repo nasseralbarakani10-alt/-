@@ -5,7 +5,6 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.database.AppDatabase
 import com.example.data.model.Category
-import com.example.data.model.Customer
 import com.example.data.model.Cutter
 import com.example.data.model.Order
 import com.example.data.model.Tailor
@@ -56,8 +55,7 @@ class WorkersRobolectricTest {
             userDao = db.userDao(),
             userPermissionsDao = db.userPermissionsDao(),
             cutterReportExpenseDao = db.cutterReportExpenseDao(),
-            tailorReportExpenseDao = db.tailorReportExpenseDao(),
-            customerDao = db.customerDao()
+            tailorReportExpenseDao = db.tailorReportExpenseDao()
         )
         val sessionManager = SessionManager(context, repository, CoroutineScope(Dispatchers.Unconfined))
         runBlocking {
@@ -141,20 +139,12 @@ class WorkersRobolectricTest {
         )
         val cutter = repository.allCutters.first().first { it.id == cutterId }
 
-        val customerId = repository.insertCustomer(
-            Customer(
-                name = "عميل تجريبي",
-                customerNumber = "101",
-                phoneNumber = "0509998877",
-                createdAt = System.currentTimeMillis()
-            )
-        )
-
         // Insert order referencing this cutter
         val orderId = repository.insertOrder(
             Order(
-                customerId = customerId,
-                sequenceNumber = 1,
+                customerName = "عميل تجريبي",
+                customerNumber = "101",
+                phoneNumber = "0509998877",
                 categoryId = categoryId,
                 fabricType = "ياباني",
                 cutterId = cutterId,

@@ -3,7 +3,6 @@ package com.example.ui.screens
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,7 +40,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +58,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
@@ -69,7 +66,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.Category
-import com.example.data.model.Customer
 import com.example.data.model.Cutter
 import com.example.data.model.Order
 import com.example.data.model.OrderWithCategory
@@ -77,7 +73,6 @@ import com.example.data.model.Tailor
 import com.example.ui.components.appTextFieldColors
 import com.example.ui.theme.BluePrimary
 import com.example.ui.theme.GreenButton
-import com.example.ui.viewmodel.OrdersViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -88,23 +83,18 @@ fun CustomerDetailScreen(
     categories: List<Category>,
     cutters: List<Cutter>,
     tailors: List<Tailor>,
-    ordersViewModel: OrdersViewModel? = null,
     onBack: () -> Unit,
-    onSave: (Order, Customer?) -> Unit,
+    onSave: (Order) -> Unit,
     modifier: Modifier = Modifier
 ) {
     BackHandler(onBack = onBack)
 
     val currentOrder = orderWithCategory.order
-    val customerId = currentOrder.customerId
 
     // Form fields editable
-    var customerName by remember { mutableStateOf(orderWithCategory.customerName) }
-    var customerNumber by remember { mutableStateOf(orderWithCategory.customerNumber) }
-    var phoneNumber by remember { mutableStateOf(orderWithCategory.phoneNumber) }
-    var isMessagingAllowedForCustomer by remember(customerId) {
-        mutableStateOf(ordersViewModel?.isCustomerMessagingAllowed(customerId) ?: true)
-    }
+    var customerName by remember { mutableStateOf(currentOrder.customerName) }
+    var customerNumber by remember { mutableStateOf(currentOrder.customerNumber) }
+    var phoneNumber by remember { mutableStateOf(currentOrder.phoneNumber) }
     var fabricType by remember { mutableStateOf(currentOrder.fabricType) }
 
     var selectedCategoryId by remember {
@@ -219,12 +209,10 @@ fun CustomerDetailScreen(
                             val cPrice = cutterPriceStr.toDoubleOrNull() ?: 0.0
                             val tPrice = tailorPriceStr.toDoubleOrNull() ?: 0.0
 
-                            val updatedCustomer = orderWithCategory.customer?.copy(
-                                name = trimmedName,
-                                customerNumber = trimmedNumber,
-                                phoneNumber = phoneNumber.trim()
-                            )
                             val updatedOrder = currentOrder.copy(
+                                customerName = trimmedName,
+                                customerNumber = trimmedNumber,
+                                phoneNumber = phoneNumber.trim(),
                                 categoryId = selectedCategoryId,
                                 fabricType = fabricType.trim(),
                                 cutterId = selectedCutterId,
@@ -237,8 +225,7 @@ fun CustomerDetailScreen(
                                 updatedAt = System.currentTimeMillis()
                             )
                             errorMessage = null
-                            ordersViewModel?.setCustomerMessagingAllowed(customerId, isMessagingAllowedForCustomer)
-                            onSave(updatedOrder, updatedCustomer)
+                            onSave(updatedOrder)
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = GreenButton),
                         shape = RoundedCornerShape(8.dp),
@@ -376,55 +363,6 @@ fun CustomerDetailScreen(
                             .fillMaxWidth()
                             .testTag("detail_phone_number_input")
                     )
-
-                    // 4. إعداد رسائل العميل (Customer Messaging Preference)
-                    HorizontalDivider(color = Color(0xFFE2E8F0))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (isMessagingAllowedForCustomer) Color(0xFFEFF6FF) else Color(0xFFFEF2F2))
-                            .border(
-                                1.dp,
-                                if (isMessagingAllowedForCustomer) Color(0xFFBFDBFE) else Color(0xFFFECACA),
-                                RoundedCornerShape(8.dp)
-                            )
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "إرسال رسائل التجهيز لهذا العميل",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.5.sp,
-                                color = Color(0xFF0F172A)
-                            )
-                            Text(
-                                text = if (isMessagingAllowedForCustomer)
-                                    "مفعل: سيتم إرسال إشعار التجهيز لهذا العميل عند اكتمال كافة طلباته"
-                                else
-                                    "معطل: إيقاف إرسال رسائل التجهيز لهذا العميل بشكل مخصص",
-                                fontSize = 11.5.sp,
-                                color = if (isMessagingAllowedForCustomer) Color(0xFF2563EB) else Color(0xFFDC2626)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Switch(
-                            checked = isMessagingAllowedForCustomer,
-                            onCheckedChange = { allowed ->
-                                isMessagingAllowedForCustomer = allowed
-                                ordersViewModel?.setCustomerMessagingAllowed(customerId, allowed)
-                            },
-                            modifier = Modifier.testTag("customer_messaging_allowed_switch"),
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFF2563EB),
-                                uncheckedThumbColor = Color.White,
-                                uncheckedTrackColor = Color(0xFFDC2626)
-                            )
-                        )
-                    }
                 }
             }
 

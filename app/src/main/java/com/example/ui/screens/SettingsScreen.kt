@@ -2,7 +2,6 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
@@ -31,17 +29,13 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Sort
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -59,11 +53,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.BluePrimary
@@ -91,16 +83,9 @@ fun SettingsScreen(
     val appSettings by (settingsViewModel?.appSettings ?: remember {
         kotlinx.coroutines.flow.MutableStateFlow(com.example.data.model.AppSettings())
     }).collectAsState()
-    val messagingSettings by (messagingViewModel?.settings ?: remember {
-        kotlinx.coroutines.flow.MutableStateFlow(com.example.data.model.MessagingSettings())
-    }).collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-
-    var editedShopPhone by remember(messagingSettings.shopPhoneNumber) {
-        mutableStateOf(messagingSettings.shopPhoneNumber)
-    }
 
     var showMessagingSettingsScreen by remember { mutableStateOf(false) }
     var showCategoriesManagement by remember { mutableStateOf(false) }
@@ -334,330 +319,17 @@ fun SettingsScreen(
                         }
                     }
 
-                    // 2.2 App Title Setting
-                    var editedAppTitle by remember(appSettings.appTitle) { mutableStateOf(appSettings.appTitle) }
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("app_title_setting_card"),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 10.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color(0xFFE0F2FE),
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.Info,
-                                            contentDescription = null,
-                                            tint = BluePrimary,
-                                            modifier = Modifier.size(19.dp)
-                                        )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = "عنوان التطبيق",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp
-                                        ),
-                                        color = Color(0xFF000000)
-                                    )
-                                    Text(
-                                        text = "تعديل نص الترويسة المعروض في أعلى الشاشة الرئيسية",
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            fontSize = 12.sp,
-                                            color = Color(0xFF64748B)
-                                        )
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                OutlinedTextField(
-                                    value = editedAppTitle,
-                                    onValueChange = { editedAppTitle = it },
-                                    label = { Text("عنوان التطبيق") },
-                                    singleLine = true,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .testTag("app_title_text_field"),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                Button(
-                                    onClick = {
-                                        settingsViewModel?.setAppTitle(editedAppTitle)
-                                        coroutineScope.launch {
-                                            snackbarHostState.showSnackbar("تم حفظ عنوان التطبيق بنجاح")
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.testTag("save_app_title_button")
-                                ) {
-                                    Text("حفظ", fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
-                    }
-
-                    // 3. Dedicated Messaging Section: قسم الرسائل (only for users with canAccessSettings)
+                    // 3. Messaging Settings (only for users with canAccessSettings)
                     if (canAccessSettings && messagingViewModel != null) {
-                        Card(
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("messaging_section_card")
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(14.dp)
-                            ) {
-                                // Header: قسم الرسائل
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .background(Color(0xFFEFF6FF), CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Chat,
-                                            contentDescription = null,
-                                            tint = Color(0xFF2563EB),
-                                            modifier = Modifier.size(22.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "قسم الرسائل",
-                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 16.sp,
-                                                color = Color(0xFF0F172A)
-                                            )
-                                        )
-                                        Text(
-                                            text = "إعدادات إرسال الرسائل وإشعارات التجهيز للمحل والعملاء",
-                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                fontSize = 12.sp,
-                                                color = Color(0xFF64748B)
-                                            )
-                                        )
-                                    }
-                                }
-
-                                HorizontalDivider(color = Color(0xFFE2E8F0))
-
-                                // ==========================================
-                                // SHOP MESSAGING (رسائل المحل)
-                                // ==========================================
-                                Text(
-                                    text = "رسائل المحل",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = Color(0xFF1E293B)
-                                )
-
-                                // رقم المحل + حفظ
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedTextField(
-                                        value = editedShopPhone,
-                                        onValueChange = { editedShopPhone = it },
-                                        label = { Text("رقم المحل") },
-                                        placeholder = { Text("أدخل رقم هاتف المحل") },
-                                        singleLine = true,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .testTag("shop_phone_number_input"),
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                    Button(
-                                        onClick = {
-                                            messagingViewModel.setShopPhoneNumber(editedShopPhone) {
-                                                coroutineScope.launch {
-                                                    snackbarHostState.showSnackbar("تم حفظ رقم المحل بنجاح")
-                                                }
-                                            }
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.testTag("save_shop_phone_button")
-                                    ) {
-                                        Text("حفظ", fontWeight = FontWeight.Bold)
-                                    }
-                                }
-
-                                // Separate control beside رقم المحل: إيقاف إرسال الرسائل للمحل
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(if (messagingSettings.stopShopMessaging) Color(0xFFFEF2F2) else Color(0xFFF8FAFC))
-                                        .border(
-                                            1.dp,
-                                            if (messagingSettings.stopShopMessaging) Color(0xFFFECACA) else Color(0xFFE2E8F0),
-                                            RoundedCornerShape(8.dp)
-                                        )
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "إيقاف إرسال الرسائل للمحل",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp,
-                                            color = Color(0xFF0F172A)
-                                        )
-                                        Text(
-                                            text = if (messagingSettings.stopShopMessaging)
-                                                "مفعل: لن يتم إرسال رسائل أو إظهار تأكيد إرسال رسالة للمحل عند اكتمال الطلبات"
-                                            else
-                                                "معطل: سيتم إظهار تأكيد إرسال رسالة للمحل عند اكتمال كافة طلبات العميل",
-                                            fontSize = 12.sp,
-                                            color = if (messagingSettings.stopShopMessaging) Color(0xFFDC2626) else Color(0xFF64748B)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Switch(
-                                        checked = messagingSettings.stopShopMessaging,
-                                        onCheckedChange = { stop ->
-                                            messagingViewModel.setStopShopMessaging(stop)
-                                        },
-                                        modifier = Modifier.testTag("stop_shop_messaging_switch"),
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = Color(0xFFDC2626),
-                                            uncheckedThumbColor = Color.White,
-                                            uncheckedTrackColor = Color(0xFFCBD5E1)
-                                        )
-                                    )
-                                }
-
-                                HorizontalDivider(color = Color(0xFFE2E8F0))
-
-                                // ==========================================
-                                // CUSTOMER MESSAGING (رسائل العملاء)
-                                // ==========================================
-                                Text(
-                                    text = "رسائل العملاء",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = Color(0xFF1E293B)
-                                )
-
-                                // إيقاف إرسال رسائل للعملاء عند التجهيز
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(if (messagingSettings.stopCustomerMessagingOnReady) Color(0xFFFEF2F2) else Color(0xFFF8FAFC))
-                                        .border(
-                                            1.dp,
-                                            if (messagingSettings.stopCustomerMessagingOnReady) Color(0xFFFECACA) else Color(0xFFE2E8F0),
-                                            RoundedCornerShape(8.dp)
-                                        )
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "إيقاف إرسال رسائل للعملاء عند التجهيز",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp,
-                                            color = Color(0xFF0F172A)
-                                        )
-                                        Text(
-                                            text = if (messagingSettings.stopCustomerMessagingOnReady)
-                                                "مفعل: لن يتم إرسال رسائل أو إظهار تأكيد إرسال رسالة للعملاء عند التجهيز"
-                                            else
-                                                "معطل: سيتم إظهار تأكيد إرسال رسالة للعميل عند اكتمال كافة طلباته",
-                                            fontSize = 12.sp,
-                                            color = if (messagingSettings.stopCustomerMessagingOnReady) Color(0xFFDC2626) else Color(0xFF64748B)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Switch(
-                                        checked = messagingSettings.stopCustomerMessagingOnReady,
-                                        onCheckedChange = { stop ->
-                                            messagingViewModel.setStopCustomerMessagingOnReady(stop)
-                                        },
-                                        modifier = Modifier.testTag("stop_customer_messaging_switch"),
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = Color(0xFFDC2626),
-                                            uncheckedThumbColor = Color.White,
-                                            uncheckedTrackColor = Color(0xFFCBD5E1)
-                                        )
-                                    )
-                                }
-
-                                HorizontalDivider(color = Color(0xFFE2E8F0))
-
-                                // Button to open detailed MessagingSettingsScreen for templates, SMS vs WhatsApp, etc.
-                                OutlinedButton(
-                                    onClick = { showMessagingSettingsScreen = true },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .testTag("open_messaging_details_btn"),
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = BorderStroke(1.dp, BluePrimary),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BluePrimary)
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Tune,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "قوالب الرسائل ونوع الإرسال (SMS / واتساب)",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.5.sp
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        SettingsOptionBar(
+                            title = "الرسائل",
+                            subtitle = "إعدادات قوالب الرسائل ونوع الإرسال (SMS، واتساب) والإرسال التلقائي",
+                            icon = Icons.Default.Chat,
+                            iconTint = Color(0xFF2563EB),
+                            iconBg = Color(0xFFEFF6FF),
+                            testTag = "messages_settings_card",
+                            onClick = { showMessagingSettingsScreen = true }
+                        )
                     }
 
                     // 4. Linked Devices

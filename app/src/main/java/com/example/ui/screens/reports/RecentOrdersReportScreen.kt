@@ -57,9 +57,9 @@ fun RecentOrdersReportScreen(
         } else {
             val q = filterText.trim()
             allOrdersWithCat.filter { item ->
-                item.customerName.contains(q, ignoreCase = true) ||
-                item.customerNumber.contains(q, ignoreCase = true) ||
-                item.phoneNumber.contains(q, ignoreCase = true) ||
+                item.order.customerName.contains(q, ignoreCase = true) ||
+                item.order.customerNumber.contains(q, ignoreCase = true) ||
+                item.order.phoneNumber.contains(q, ignoreCase = true) ||
                 item.order.fabricType.contains(q, ignoreCase = true) ||
                 (item.category?.name?.contains(q, ignoreCase = true) == true) ||
                 (item.cutter?.name?.contains(q, ignoreCase = true) == true) ||

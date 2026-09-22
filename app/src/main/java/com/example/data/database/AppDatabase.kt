@@ -10,7 +10,6 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.dao.AppSettingsDao
 import com.example.data.dao.CategoryDao
-import com.example.data.dao.CustomerDao
 import com.example.data.dao.CutterDao
 import com.example.data.dao.CutterPriceDao
 import com.example.data.dao.CutterReportExpenseDao
@@ -24,7 +23,6 @@ import com.example.data.dao.UserDao
 import com.example.data.dao.UserPermissionsDao
 import com.example.data.model.AppSettings
 import com.example.data.model.Category
-import com.example.data.model.Customer
 import com.example.data.model.Cutter
 import com.example.data.model.CutterPrice
 import com.example.data.model.CutterReportExpense
@@ -40,7 +38,6 @@ import com.example.data.security.PasswordHasher
 
 @Database(
     entities = [
-        Customer::class,
         Order::class,
         Category::class,
         Cutter::class,
@@ -55,11 +52,10 @@ import com.example.data.security.PasswordHasher
         MessagingSettings::class,
         AppSettings::class
     ],
-    version = 10,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun customerDao(): CustomerDao
     abstract fun orderDao(): OrderDao
     abstract fun categoryDao(): CategoryDao
     abstract fun cutterDao(): CutterDao
@@ -132,37 +128,6 @@ abstract class AppDatabase : RoomDatabase() {
                     INSERT OR IGNORE INTO app_settings (id, sortByFrequencyEnabled)
                     VALUES (1, 1)
                 """.trimIndent())
-            }
-        }
-
-        private fun ensureMessagingSettingsColumns(db: SupportSQLiteDatabase) {
-            try {
-                val cursor = db.query("PRAGMA table_info('messaging_settings')")
-                val columns = mutableSetOf<String>()
-                while (cursor.moveToNext()) {
-                    val colName = cursor.getString(1)
-                    columns.add(colName)
-                }
-                cursor.close()
-                if (columns.isNotEmpty()) {
-                    if (!columns.contains("shopPhoneNumber")) {
-                        db.execSQL("ALTER TABLE messaging_settings ADD COLUMN shopPhoneNumber TEXT NOT NULL DEFAULT ''")
-                    }
-                    if (!columns.contains("stopShopMessaging")) {
-                        db.execSQL("ALTER TABLE messaging_settings ADD COLUMN stopShopMessaging INTEGER NOT NULL DEFAULT 0")
-                    }
-                    if (!columns.contains("stopCustomerMessagingOnReady")) {
-                        db.execSQL("ALTER TABLE messaging_settings ADD COLUMN stopCustomerMessagingOnReady INTEGER NOT NULL DEFAULT 0")
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        val MIGRATION_9_10 = object : Migration(9, 10) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                ensureMessagingSettingsColumns(db)
             }
         }
 
@@ -276,13 +241,12 @@ abstract class AppDatabase : RoomDatabase() {
                         AppDatabase::class.java,
                         "trend_tailoring_db"
                     )
-                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_9_10)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .fallbackToDestructiveMigration()
                     .fallbackToDestructiveMigrationOnDowngrade()
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
-                            ensureMessagingSettingsColumns(db)
                             seedCategoriesIfEmpty(db)
                             seedUsersIfEmpty(db)
                             seedMessagingSettingsIfEmpty(db)
@@ -292,7 +256,6 @@ abstract class AppDatabase : RoomDatabase() {
 
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
-                            ensureMessagingSettingsColumns(db)
                             seedCategoriesIfEmpty(db)
                             seedUsersIfEmpty(db)
                             seedMessagingSettingsIfEmpty(db)
@@ -336,8 +299,8 @@ abstract class AppDatabase : RoomDatabase() {
                     private fun seedAppSettingsIfEmpty(db: SupportSQLiteDatabase) {
                         try {
                             db.execSQL("""
-                                INSERT OR IGNORE INTO app_settings (id, sortByFrequencyEnabled, appTitle)
-                                VALUES (1, 1, 'كشف متابعة العمل لمحل ترند')
+                                INSERT OR IGNORE INTO app_settings (id, sortByFrequencyEnabled)
+                                VALUES (1, 1)
                             """.trimIndent())
                         } catch (e: Exception) {
                             e.printStackTrace()
@@ -346,10 +309,9 @@ abstract class AppDatabase : RoomDatabase() {
 
                     private fun seedMessagingSettingsIfEmpty(db: SupportSQLiteDatabase) {
                         try {
-                            ensureMessagingSettingsColumns(db)
                             db.execSQL("""
-                                INSERT OR IGNORE INTO messaging_settings (id, messageType, delaySeconds, autoSendEnabled, readyMessageTemplate, shopPhoneNumber, stopShopMessaging, stopCustomerMessagingOnReady)
-                                VALUES (1, 'SMS', 15, 1, 'الملابس جاهزة للتسليم شكراً لثقتكم بنا♡', '', 0, 0)
+                                INSERT OR IGNORE INTO messaging_settings (id, messageType, delaySeconds, autoSendEnabled, readyMessageTemplate)
+                                VALUES (1, 'SMS', 15, 1, 'الملابس جاهزة للتسليم شكراً لثقتكم بنا♡')
                             """.trimIndent())
                         } catch (e: Exception) {
                             e.printStackTrace()

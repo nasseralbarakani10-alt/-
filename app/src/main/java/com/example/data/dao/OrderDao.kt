@@ -54,12 +54,6 @@ interface OrderDao {
     @Query("SELECT COUNT(*) FROM orders WHERE categoryId = :categoryId")
     suspend fun getOrderCountForCategory(categoryId: Long): Int
 
-    @Query("SELECT * FROM orders WHERE customerId = :customerId ORDER BY sequenceNumber ASC")
-    fun getOrdersForCustomer(customerId: Long): Flow<List<Order>>
-
-    @Query("SELECT * FROM orders WHERE customerId = :customerId ORDER BY sequenceNumber ASC")
-    suspend fun getOrdersForCustomerDirect(customerId: Long): List<Order>
-
     @Query("SELECT * FROM orders WHERE id = :id")
     fun getOrderById(id: Long): Flow<Order?>
 
